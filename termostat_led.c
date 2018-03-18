@@ -46,6 +46,9 @@ bit skipDelay = 1;
 #ifdef cold
 #define ShowDotAtStartup 1
 #endif
+#ifndef ShowDotAtStartup
+#define ShowDotAtStartup 0
+#endif
 
 // буфер данных, дл€ вывода на экран
 BYTE byDisplay[4]
@@ -101,6 +104,9 @@ bit GoBlinking = 0;   //флаг дл€ мигани€ (отображени€ информации об ошибке)
 #ifdef cold
 #define ShowDotWhenError 1
 #endif
+#ifndef ShowDotWhenError
+#define ShowDotWhenError 0
+#endif
 
 #ifdef Blinking
 BYTE BlinkCounter;                      //—четчик моргани€
@@ -108,7 +114,7 @@ BYTE BlinkCounter;                      //—четчик моргани€
 #define BlinkCounterHalfMask 0b00100000 //примерно 2 моргани€ в секунду
 BYTE DimmerCounter;                     //—четчик €ркости, моргание будет с неполным отключением индикатора
 bit DigitsActive = 0;                       
-#define DimmerDivider 4 //Ёто регулировка €ркости: 4 соответствует 60%, 2 - примерно 35%
+#define DimmerDivider 1 //Ёто регулировка €ркости: 4 соответствует 60%, 2 - примерно 35%, 1 - 0%
 #else
   #ifdef Cathode 
     #define DigitsActive 0
@@ -307,14 +313,17 @@ void ShowDisplayData11Times(void)
 //   }                           
   #ifdef heat
   if (LoadOn)
-  #endif
-  
-  #ifdef cold
-  if (!LoadOn)
-  #endif
   {
     PORTB = PINB | 0b00000100;
-  }           
+  }
+  #endif
+ 
+  #ifdef cold
+  if (!LoadOn)
+  {
+    PORTB = PINB | 0b00000100;
+  }
+  #endif          
   if (View == SHOW_TLoadOn)
   {
     PORTB = PINB | 0b00001000;
@@ -362,14 +371,17 @@ void ShowDisplayData11Times(void)
 //   }                           
   #ifdef heat
   if (LoadOn)
+  {
+    PORTB = PINB & 0b11111011;
+  }           
   #endif
   
   #ifdef cold
   if (!LoadOn)
-  #endif
   {
     PORTB = PINB & 0b11111011;
   }           
+  #endif
   if (View == SHOW_TLoadOn)
   {
     PORTB = PINB & 0b11110111;
