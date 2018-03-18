@@ -25,7 +25,9 @@ extern INT8 CorT;
 #endif
 extern void RefreshDisplay(void);
 #endif
-
+#ifdef Blinking                    
+extern bit GoBlinking;
+#endif
 
 #define     KEY_1      0x01    // Код клавиши 1
 #define     KEY_2      0x02    // Код клавиши 2
@@ -240,8 +242,8 @@ void ProcessKey(void)
 	
     }
     Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-    #ifdef ShowDataErrors
-    ErrorDetected = 0;
+    #ifdef Blinking                    
+    GoBlinking = 0;
     #endif
     RefreshDisplay(); //обновляем данные на экране
     
