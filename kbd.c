@@ -182,7 +182,7 @@ void ProcessKey(void)
                 Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
               case 2:
-                if (DeltaT < 900)   //если Дельта меньше 90,0°, то
+                if (DeltaT < 900) if ((T_LoadOn + DeltaT) < 2250)   //если Дельта меньше 90,0°, то
                 {
                   DeltaT ++;        //то увеличиваем Дэльту на 0,1°
                   RefreshDisplay(); //обновляем данные на экране
