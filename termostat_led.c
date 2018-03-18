@@ -39,12 +39,12 @@ Data Stack size     : 32
 #define heat              //точка отображается если T < Tуст.
 //#define cold            //точка отображается если T > Tуст.
      
-BYTE byDisplay[4];        // буфер данных, для вывода на экран     
+BYTE byDisplay[4]={11,11,11,11};        // буфер данных, для вывода на экран     
 
 BOOLEAN Updating;         //служебная переменная
 BOOLEAN Minus;            //равна "1" если температура отрицательная
 BOOLEAN LoadOn;           //равна "1" если включена нагрузка
-bit Initiaslizing;        //равна "1" до получения первого значения температуры с датчика
+bit Initialising;        //равна "1" до получения первого значения температуры с датчика
 
 BYTE Counter = 0;         //служебная переменная, для подсчёта времени возврата в основной режим отображения
 BYTE View = 0;            //определяет в каком режиме отображения находится устройство:
@@ -56,6 +56,7 @@ WORD Tnew;                //для хранения нового значения измеренной температуры
 WORD T_LoadOn;            //для хранения значения Установленной температуры
 WORD DeltaT;              //для хранения значения Дэльты
 
+bit NeedResetLoad = 0;
 eeprom WORD eeT_LoadOn = 1280;   //1280 = +28°C 1140 = +14°C 
 eeprom WORD eeDeltaT = 10;       //1°C
 
@@ -100,6 +101,10 @@ void PrepareData(unsigned int Data)
 {
     BYTE i;
     unsigned int D, D1;        
+    if (Initialising)
+    {
+      return;
+    }
     D = Data;                           
     
     if (D >= 1000) //если Температура больше нуля
@@ -134,20 +139,10 @@ void PrepareData(unsigned int Data)
       goto exit;
     }
                     
-exit:
-  if (Initiaslizing)
-  {
-    byDisplay[0] = 11;
-    byDisplay[1] = 11;
-    byDisplay[2] = 11;
-    byDisplay[3] = 11;
-  }
-  else
-  {  
+exit:  
   if (View == 2)
   {
     byDisplay[0] = 13;     
-  }
   }
     
 }
@@ -399,7 +394,7 @@ if (Updating)           //если в этот раз читаем температуру, то
                                                           //Формат хранения - смотри строку 58 этого файла.
   }    
   Tnew = Tnew + 0;
-  Initiaslizing = 0; 
+  Initialising = 0;//хватит показывать заставку
 }
 else
 {
@@ -407,23 +402,28 @@ else
 } 
 
 
+if (!Initialising)
+{
 Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
 
-if ((Tnew >= Temp) && (LoadOn)) //Если температура выше (установленной + Дэльта) и нагрузка включена,
+if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 {                              //то выключаем нагрузку
   PORTD.3 = 1;
   PORTD.2 = 0;              
   LoadOn = 0;
+  NeedResetLoad = 0;              
 }             
 
 Temp = T_LoadOn;                //Temp - временная переменная.
 
-if ((Tnew <= Temp) && (!LoadOn)) //Если температура ниже (установленной) и нагрузка выключена,
+if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
 {                               //то включаем нагрузку
   PORTD.3 = 0;
   PORTD.2 = 1;
   LoadOn = 1;  
+  NeedResetLoad = 0;              
 } 
+}
 
 if (Counter > 0)                //Counter - переменная для подсчёта времени отображения различных режимов
 {                               
@@ -467,18 +467,18 @@ CLKPR=0x00;
         
          
         #ifdef Cathode  
-          PORTD=0b01110111;
+          PORTD=0b01110011;
           DDRD= 0b00111111;
         #endif
         
         #ifdef Anode  
-          PORTD=0b01000100;
+          PORTD=0b01000000;
           DDRD= 0b00111111;
         #endif
 
-
-PORTD.3 = 1;
-PORTD.2 = 0;
+//выше уже проинициализировали
+//PORTD.3 = 0;
+//PORTD.2 = 0;
 
 // Timer/Counter 0 initialization
 // Clock source: System Clock
@@ -506,8 +506,8 @@ OCR0B=0x00;
 // Compare B Match Interrupt: Off
 TCCR1A=0x00;
 TCCR1B=0x04;
-TCNT1H=0x03;
-TCNT1L=0xD1;
+TCNT1H=0xFF;
+TCNT1L=0xFE;
 ICR1H=0x00;
 ICR1L=0x00;
 OCR1AH=0x00;
@@ -536,7 +536,7 @@ USICR=0x00;
 // Analog Comparator Input Capture by Timer/Counter 1: Off
 ACSR=0x80;
 
-Tnew = 1000;                //Это чтобы на экране был "0.0" при включении питания
+//Tnew = 1000;                //Это чтобы на экране был "0.0" при включении питания
 
 if ((eeT_LoadOn > 2250) | (eeT_LoadOn < 450))    //если в EEPROM значение > 2250 или < 450 значит он не прошился, или 
   eeT_LoadOn = 1280;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
@@ -545,13 +545,16 @@ if (eeDeltaT > 900)
   
 T_LoadOn = eeT_LoadOn;  //читаем значение Установленной температуры из EEPROM в RAM
 DeltaT = eeDeltaT;      //читаем значение Дэльты из EEPROM в RAM
-Initiaslizing = 1;
+
+Initialising = 1;
+NeedResetLoad = 1;
 
 RefreshDisplay();       //Обновление данных на индикаторе.
 
-w1_init();              //инициализация шины 1-wire
-w1_write(0xCC);         //выдаём в шину 1-wire код 0xCC, что значит "Skip ROM"
-w1_write(0x44);         //выдаём в шину 1-wire код 0xCC, что значит "Convert T"
+// w1_init();              //инициализация шины 1-wire
+// w1_write(0xCC);         //выдаём в шину 1-wire код 0xCC, что значит "Skip ROM"
+// w1_write(0x44);         //выдаём в шину 1-wire код 0xCC, что значит "Convert T"
+Updating = 1;
 
                         
 KbdInit();              //инициализация клавиатуры :)

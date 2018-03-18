@@ -12,6 +12,16 @@
 #include    "kbd.h"
 #include <tiny2313.h>
 
+#if __CODEVISIONAVR__ > 2000
+//проверка версии только для полной гарантии того, что 
+//оригинальная версия исходника не затрагивается
+extern BYTE View;
+extern BYTE Counter;
+extern WORD T_LoadOn;
+extern WORD DeltaT;
+extern void RefreshDisplay(void);
+#endif
+
 #define     ST_WAIT_KEY     0
 #define     ST_CHECK_KEY    1
 #define     ST_RELEASE_WAIT 2
