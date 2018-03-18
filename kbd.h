@@ -8,40 +8,21 @@
 #define    BOOLEAN char
 #define    CARDINAL unsigned long int
 
-struct SVars
-{
-  WORD _Tnew;
-  WORD _T_LoadOn;
-  WORD _DeltaT;
-};
+#define     ST_WAIT_KEY     0
+#define     ST_CHECK_KEY    1
+#define     ST_RELEASE_WAIT 2
 
-union SettingsU {
-            WORD data[4];
-            struct SVars vars;
-            };
+extern BYTE    byScanState;    // Состояние конечного автомата опроса клавиатуры
 
-extern union SettingsU Settings;
-
-//WORD Tnew;                //для хранения нового значения измеренной температуры
-#define Tnew Settings.vars._Tnew
-//WORD T_LoadOn;            //для хранения значения Установленной температуры
-#define T_LoadOn Settings.vars._T_LoadOn
-//WORD DeltaT;              //для хранения значения Дэльты
-#define DeltaT Settings.vars._DeltaT
-
-#define CorCode
-#define MaxCorT 1100
-#define MinCorT 900
-
-extern BOOLEAN btKeyUpdate;     // = 1, когда обнаружено нажание на клавишу
+extern bit btKeyUpdate;     // = 1, когда обнаружено нажание на клавишу
 
 /**************************************************************************\
     Инициализация модуля (переменных и железа)
       Вход:  -
       Выход: -
 \**************************************************************************/
-extern void KbdInit(void);
-
+//extern void KbdInit(void);
+#define KbdInit(dummy) btKeyUpdate = FALSE; byScanState = ST_WAIT_KEY;
 /**************************************************************************\
     Сканирование клавиатуры
       Вход:  -

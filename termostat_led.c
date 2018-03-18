@@ -7,8 +7,8 @@ http://www.hpinfotech.com
 
 Project : 
 Version : 
-Date    : 15.10.2008
-Author  : Yurik                           
+Date    : 22.12.2014
+Author  : propellant                           
 Company : Hardlock                        
 Comments: 
 
@@ -17,11 +17,12 @@ Chip type           : ATtiny2313
 Clock frequency     : 8,000000 MHz
 Memory model        : Tiny
 External SRAM size  : 0
-Data Stack size     : 32
+Data Stack size     : 40
 *****************************************************/
 
 #include <tiny2313.h>
 #include <kbd.h>
+#include "termostat_led.h"
 
 // 1 Wire Bus functions
 #asm
@@ -31,119 +32,107 @@ Data Stack size     : 32
 #include <1wire.h>
 #include <delay.h>
 
-#define LED_delay 150    
-
+#define NO_BLINK
+#ifndef NO_BLINK
+#define LED_delay 150U    
+#else
+#define LED_delay 600U    
+#define LED_delay_add 800U    
+bit skipDelay = 1;
+#endif
 //#define Cathode           //раскоментировать, если индикатор с ОК
 #define Anode           //раскоментировать, если индикатор с ОА
 
 #define heat              //точка отображается если T < Tуст.
 //#define cold            //точка отображается если T > Tуст.
-     
-BYTE byDisplay[4]={11,11,11,11};        // буфер данных, для вывода на экран     
 
+#ifdef heat
+#define ShowDotAtStartup 0
+#endif
+#ifdef cold
+#define ShowDotAtStartup 1
+#endif
+
+BYTE byDisplay[4]={11,11,11,11};    // буфер данных, для вывода на экран  
+//BYTE byDisplay[4]={0,0,0,0};      // так потратит немножко меньше памяти, но покажет рпи старте 000.0
+  
 bit Updating;         //служебная переменная
-bit Minus;            //равна "1" если температура отрицательная
+//bit Minus;            //равна "1" если температура отрицательная
 bit LoadOn;           //равна "1" если включена нагрузка
-bit Initialising;        //равна "1" до получения первого значения температуры с датчика
+bit Initializing;        //равна "1" до получения первого значения температуры с датчика
+
+bit AllDataFF;        
+bit NonZero;
 
 BYTE Counter = 0;         //служебная переменная, для подсчёта времени возврата в основной режим отображения
 BYTE View = 0;            //определяет в каком режиме отображения находится устройство:
                           //0 - основной - Текущая температура
                           //1 - Установленная температура
                           //2 - Дэльта
-union SettingsU Settings;
-// struct SVars
-// {
-//   WORD _Tnew;
-//   WORD _T_LoadOn;
-//   WORD _DeltaT;
-// };
-// 
-// union SettingsU {
-//             WORD data[4];
-//             struct SVars vars;
-//             } Settings;
-// 
-// 
-// //WORD Tnew;                //для хранения нового значения измеренной температуры
-// #define Tnew Settings.vars._Tnew
-// //WORD T_LoadOn;            //для хранения значения Установленной температуры
-// #define T_LoadOn Settings.vars._T_LoadOn
-// //WORD DeltaT;              //для хранения значения Дэльты
-// #define DeltaT Settings.vars._DeltaT
-#ifdef CorCode //  *** Grey4ip  ***
-WORD CorT;                //для хранения коррекции
+
+int Tnew;                //для хранения нового значения измеренной температуры
+int T_LoadOn;            //для хранения значения Установленной температуры
+int DeltaT;              //для хранения значения Дэльты
+
+BYTE w1buffer[9];        //для хранения принятых с датчика данных
+BYTE ErrorLevel;         //для хранения номера последней обнаруженной ошибки передачи данных
+BYTE ErrorCounter;       //для хранения количества обнаруженных ПОДРЯД ошибок, первая же удачная передача сбрасывает этот счетчик
+#define MaxDataErrors 1  //количество игнорируемых ПОДРЯД-ошибок, по умолчанию 1, максимум 255
+bit NeedResetLoad = 1;   //флаг для правильного возвращения состояния реле после исчезновения ошибки
+bit ErrorDetected = 0;   //флаг для отображения информации об ошибке (мигания) 
+#ifdef heat
+#define ShowDotWhenError 0
 #endif
-//WORD* curMenuValue;
-
-// flash WORD MinMenu[3]={10,20,30};
-//flash WORD MaxMenu[3]={11,21,31};
-bit NeedResetLoad = 0;
-eeprom WORD eeT_LoadOn = 1280;   //1280 = +28°C 1140 = +14°C 
-eeprom WORD eeDeltaT = 10;       //1°C
-#ifdef CorCode //  *** Grey4ip  ***
-eeprom WORD eeCorT = 1000; //0°C
+#ifdef cold
+#define ShowDotWhenError 1
+#endif
+#define Blinking
+#ifdef Blinking
+BYTE BlinkCounter;        //Счетчик мигания
+#define BlinkCounterMask 0b00111111     //примерно 2 моргания в секунду
+#define BlinkCounterHalfMask 0b00100000 //примерно 2 моргания в секунду
+BYTE DimmerCounter;        //Счетчик мигания
+bit DigitsActive = 0;                       
+#define DimmerDivider 4 //Это регулировка яркости: 4 соответствует 60%, 2 - примерно 35%
+#else
+  #ifdef Cathode 
+    #define DigitsActive 0
+  #endif
+  #ifdef Anode 
+    #define DigitsActive 1
+  #endif
 #endif
 
-//температура для удобства представлена так:
-// - до 1000 = отрицательная
-// - 1000 = 0
-// - больше 1000 = положительная
-// - 0,1°С = 1
-//---------------------------------
-//-55°C = 450
-//-25°C = 750
-//-10.1°C = 899
-//0°C = 1000
-//10.1°C = 1101
-//25°C = 1250
-//85°C = 1850
-//125°C = 2250       
+//Это две переменные для "занимания места"
+//чтобы данные, записанные предыдущей версией прошивки не влияли на новую версию
+//(тип и формат хранения изменился)
+eeprom WORD eeT_LoadOn0 = 1280;   //280 = +28°C 140 = +14°C 
+eeprom WORD eeDeltaT0 = 10;       //1°C
 
+eeprom int eeT_LoadOn = TLoadOn_Default;   //280 = +28°C 140 = +14°C 
+eeprom int eeDeltaT = DeltaT_Default;       //1°C
 
-BYTE byCharacter[15] = {0xFA,     //0
-                0x82,   //1
- 	        0xB9,   //2
-	        0xAB,	//3 
-	        0xC3,     //4 
-	        0x6B,     //5 
-	        0x7B,     //6
-                0xA2,    //7 
-                0xFB,      //8
-                0xEB,      //9 
-                0x00,      //blank   
-                0x01,     //-
-                0x78,     //C
-                0x9B,     //d
-                0x58      //L
-                }; 
-
-
+BYTE byCharacter[14] = SymbolsArray;
 
 /************************************************************************\
 \************************************************************************/
-void PrepareData(unsigned int Data)
+void PrepareData(int Data)
 {
     BYTE i;
-    unsigned int D, D1;        
-    if (Initialising)
+    int D;        
+    if (Initializing)
     {
       return;
     }
-    D = Data;                           
-    
-    if (D >= 1000) //если Температура больше нуля
+    if (Data < 0)        
     {
-      D = D - 1000;  
-      Minus = 0;
+      D = -Data;
     }
     else
     {
-      D = 1000 - D; 
-      Minus = 1;
-    }          
-    D1 = D;
-    
+      D = Data;
+    }
+        
     //Преобразуем в десятичное представление
     for(i=0; i<4; i++)
     {
@@ -151,30 +140,34 @@ void PrepareData(unsigned int Data)
        D /= 10;
     }
     
-    if (D1 < 100)
+    if (byDisplay[0] == 0)
     {
       byDisplay[0] = 10;
-      byDisplay[1] = 10;
-
-      goto exit;
+      if (byDisplay[1] == 0)
+      {
+        byDisplay[1] = 10;
+      } 
     }   
-    if ((D1 >= 100) & (D1 <1000))
+    if (Data < 0)
     {
-      byDisplay[0] = 10;
-      goto exit;
+      byDisplay[0] = 11;
     }
-                    
-exit:  
-  if (View == 2)
-  {
-    byDisplay[0] = 13;     
-  }
-#ifdef CorCode          //  *** Grey4ip  ***
-    else if (View == 4) // Если режим настройки коррекции, то
+
+    switch (View)
     {
-      byDisplay[0] = 12; // выводим букву "С" в первом разряде
-    }
-#endif    
+        case (2):
+          byDisplay[0] = 12;     
+        break;
+        case (3):
+          byDisplay[0] = 13;     
+        break;
+          case (0):
+          if (ErrorCounter == 0)
+          {
+            byDisplay[0] = 13;     
+          }
+        break;
+    }        
 }
 
 /************************************************************************\
@@ -182,15 +175,201 @@ exit:
       Вход:  -
       Выход: -
 \************************************************************************/
-void ShowDisplayData(void)
-{                      
+// inline void ShowDisplayData(void)
+// {                      
+//  #ifdef Cathode                     
+//   #ifdef Blinking                    
+//   //BYTE 
+//   DigitsActive = 0;
+//   DimmerCounter++;
+//   if (BlinkCounter < BlinkHalfPeriod)
+//   if (View == 0) if (ErrorDetected) if (DimmerCounter % 4 == 0)
+//   {
+//     DigitsActive = 1;
+//   }              
+//   #endif        
+//  
+//   PORTB = byCharacter[byDisplay[0]];
+//   if (Minus)
+//   {
+//     PORTB = PINB | 0b00000001;
+//   }                           
+//   #ifdef heat
+//   if (LoadOn)
+//   #endif
+//   
+//   #ifdef cold
+//   if (!LoadOn)
+//   #endif
+//   {
+//     PORTB = PINB | 0b00000100;
+//   }           
+//   if (View == 1)
+//   {
+//     PORTB = PINB | 0b00001000;
+//   }
+//   DIGIT1 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT1 = 1;    
+//      
+//   PORTB = byCharacter[byDisplay[1]];
+//   DIGIT2 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT2 = 1;
+//       
+//   PORTB = byCharacter[byDisplay[2]] | 0b00000100;
+//   DIGIT3 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT3 = 1;
+//       
+//   PORTB = byCharacter[byDisplay[3]];
+//   DIGIT4 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT4 = 1;
+// #endif
+// 
+// #ifdef Anode
+//   #ifdef Blinking                    
+//   //BYTE 
+//   DigitsActive = 1;
+//   DimmerCounter++;
+//   if (BlinkCounter < BlinkHalfPeriod)
+//   if (View == 0) if (ErrorDetected) if (DimmerCounter % 4 == 0)
+//   {
+//     DigitsActive = 0;
+//   }                      
+//   #endif        
+//   PORTB = ~byCharacter[byDisplay[0]];  
+//   if (Minus)
+//   {
+//     PORTB = PINB & 0b11111110;
+//   }                           
+//   #ifdef heat
+//   if (LoadOn)
+//   #endif
+//   
+//   #ifdef cold
+//   if (!LoadOn)
+//   #endif
+//   {
+//     PORTB = PINB & 0b11111011;
+//   }           
+//   if (View == 1)
+//   {
+//     PORTB = PINB & 0b11110111;
+//   } 
+//   DIGIT1 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT1 = 0;    
+//      
+//   PORTB = ~byCharacter[byDisplay[1]];
+//   DIGIT2 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT2 = 0;
+//       
+//   PORTB = ~byCharacter[byDisplay[2]] & 0b11111011;
+//   DIGIT3 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT3 = 0;
+//       
+//   PORTB = ~byCharacter[byDisplay[3]];
+//   DIGIT4 = DigitsActive;
+//   delay_us(LED_delay);
+//   DIGIT4 = 0;
+// #endif
+//  
+//   
+//   }
+
+
+/************************************************************************\
+  Обновление дисплея.
+      Вход:  -
+      Выход: -
+\************************************************************************/
+void RefreshDisplay(void)
+{                                
+  int Data; 
+  switch (View)
+  {
+    case 0:
+      if (ErrorCounter == 0)
+      {
+        Data = ErrorLevel;// + 1000;
+      }
+      else
+      {
+        Data = Tnew;
+      } 
+      if (T_LoadOn != eeT_LoadOn)
+        eeT_LoadOn = T_LoadOn;
+      if (DeltaT != eeDeltaT)
+        eeDeltaT = DeltaT;
+    break;
+    case 1:
+      Data = T_LoadOn;
+    break;
+        
+    case 2:
+      Data = DeltaT;// + 1000; 
+    break;
+    case 3:
+        Data = ErrorLevel;// + 1000;
+    break;
+  }
+      
+  PrepareData(Data);      
+}
+
+// Timer 0 overflow interrupt service routine
+interrupt [TIM0_OVF] void timer0_ovf_isr(void)
+{                
+// Reinitialize Timer 0 value
+TCNT0=0xB5;
+// if (BlinkCounter < 2 * BlinkHalfPeriod)
+// {
+  BlinkCounter++;
+  BlinkCounter &= BlinkCounterMask;
+//}
+// else
+// {
+//   BlinkCounter = 0;
+// }
+
+ScanKbd();
+}
+
+void ShowDisplayData11Times(void)
+{
+  BYTE i; 
+  #ifdef NO_BLINK
+  if (!skipDelay)
+  {
+    delay_us(LED_delay_add);
+  }
+  #endif
+
+  for (i=0; i<4; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
+  {
+//    ShowDisplayData(); 
  #ifdef Cathode                     
+  #ifdef Blinking                    
+  //BYTE 
+  DigitsActive = 0;
+  DimmerCounter++;
+//  if (BlinkCounter > BlinkHalfPeriod)
+  if (BlinkCounter & BlinkCounterHalfMask)
+  if (View == 0) if (ErrorDetected) if (DimmerCounter % DimmerDivider == 0)
+  {
+    DigitsActive = 1;
+  }              
+  #endif        
  
   PORTB = byCharacter[byDisplay[0]];
-  if (Minus)
-  {
-    PORTB = PINB | 0b00000001;
-  }                           
+//   if (Minus)
+//   {
+//     PORTB = PINB | 0b00000001;
+//   }                           
   #ifdef heat
   if (LoadOn)
   #endif
@@ -205,32 +384,43 @@ void ShowDisplayData(void)
   {
     PORTB = PINB | 0b00001000;
   }
-  PORTD.5 = 0;
+  DIGIT1 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.5 = 1;    
+  DIGIT1 = 1;    
      
   PORTB = byCharacter[byDisplay[1]];
-  PORTD.1 = 0;
+  DIGIT2 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.1 = 1;
+  DIGIT2 = 1;
       
   PORTB = byCharacter[byDisplay[2]] | 0b00000100;
-  PORTD.0 = 0;
+  DIGIT3 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.0 = 1;
+  DIGIT3 = 1;
       
   PORTB = byCharacter[byDisplay[3]];
-  PORTD.4 = 0;
+  DIGIT4 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.4 = 1;
+  DIGIT4 = 1;
 #endif
 
 #ifdef Anode
-  PORTB = ~byCharacter[byDisplay[0]];  
-  if (Minus)
+  #ifdef Blinking                    
+  //BYTE 
+  DigitsActive = 1;
+  DimmerCounter++;
+//  if (BlinkCounter > BlinkHalfPeriod)
+  if (BlinkCounter & BlinkCounterHalfMask)
+  if (View == 0) if (ErrorDetected) if (DimmerCounter % DimmerDivider == 0)
   {
-    PORTB = PINB & 0b11111110;
-  }                           
+    DigitsActive = 0;
+  }                      
+  #endif        
+  PORTB = ~byCharacter[byDisplay[0]];  
+//   if (Minus)
+//   {
+//     PORTB = PINB & 0b11111110;
+//   }                           
   #ifdef heat
   if (LoadOn)
   #endif
@@ -245,101 +435,59 @@ void ShowDisplayData(void)
   {
     PORTB = PINB & 0b11110111;
   } 
-  PORTD.5 = 1;
+  DIGIT1 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.5 = 0;    
+  DIGIT1 = 0;    
      
   PORTB = ~byCharacter[byDisplay[1]];
-  PORTD.1 = 1;
+  DIGIT2 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.1 = 0;
+  DIGIT2 = 0;
       
   PORTB = ~byCharacter[byDisplay[2]] & 0b11111011;
-  PORTD.0 = 1;
+  DIGIT3 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.0 = 0;
+  DIGIT3 = 0;
       
   PORTB = ~byCharacter[byDisplay[3]];
-  PORTD.4 = 1;
+  DIGIT4 = DigitsActive;
   delay_us(LED_delay);
-  PORTD.4 = 0;
+  DIGIT4 = 0;
 #endif
- 
-  
+
   }
-
-
-/************************************************************************\
-  Обновление дисплея.
-      Вход:  -
-      Выход: -
-\************************************************************************/
-void RefreshDisplay(void)
-{                                
-  WORD Data; 
-  switch (View)
-  {
-    case 0:
-      Data = Tnew; 
-      if (T_LoadOn != eeT_LoadOn)
-        eeT_LoadOn = T_LoadOn;
-      if (DeltaT != eeDeltaT)
-        eeDeltaT = DeltaT;
-      if (CorT != eeCorT)
-        eeCorT = CorT;
-    break;
-    case 1:
-      Data = T_LoadOn;
-    break;
-        
-    case 2:
-      Data = DeltaT + 1000; 
-    break;
-    #ifdef CorCode //  *** Grey4ip  ***
-    case 4: // Выводим сдвиг температуры датчика
-      Data = CorT;
-    break;
-    #endif
-  }
-      
-  PrepareData(Data);      
-}
-
-// Timer 0 overflow interrupt service routine
-interrupt [TIM0_OVF] void timer0_ovf_isr(void)
-{                
-// Reinitialize Timer 0 value
-TCNT0=0xBF;
-
-ScanKbd();
 }
 
 // Timer 1 overflow interrupt service routine
 interrupt [TIM1_OVF] void timer1_ovf_isr(void)
 {
-  BYTE t1;
-  BYTE t2;
+  //BYTE t1;
+  //BYTE t2;
   BYTE i; 
-  WORD Temp;
-  WORD T;
-  BYTE Ff;
+  int Temp;
+  //WORD T;
+//   BYTE Ff;
+//   BYTE NonZero;
+  int *val;
 // Reinitialize Timer 1 value
-TCNT1H=0x8F;
-TCNT1L=0xD1;
-
+TCNT1=0x85EE;
+//TCNT1L=0xD1;
+#ifdef NO_BLINK
+skipDelay = 1;
+#endif
 w1_init();              //инициализация шины 1-wire
 
-for (i=0; i<11; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
-  {
-    ShowDisplayData();
-  }
+//for (i=0; i<11; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
+//  {
+    ShowDisplayData11Times();
+//  }
 
 w1_write(0xCC);         //выдаём в шину 1-wire код 0xCC, что значит "Skip ROM"     
  
-for (i=0; i<11; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
-  {
-    ShowDisplayData();
-  }
+//for (i=0; i<11; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
+//  {
+    ShowDisplayData11Times();
+//  }
 
 Updating = !Updating;   //это шоб читать температуру через раз
 
@@ -347,19 +495,79 @@ if (Updating)           //если в этот раз читаем температуру, то
 {
   w1_write(0xBE);       //выдаём в шину 1-wire код 0xCC, что значит "Read Scratchpad"
   
-  for (i=0; i<11; i++)  //шоб не моргало изображение делаем обновление эрана 10 раз
-  {
-    ShowDisplayData();
-  }                      
+//  for (i=0; i<11; i++)  //шоб не моргало изображение делаем обновление эрана 10 раз
+//  {
+    ShowDisplayData11Times();
+//  }                      
   
-  t1=w1_read();   //LSB //читаем младший байт данных
-  
-  for (i=0; i<11; i++)  //шоб не моргало изображение делаем обновление эрана 10 раз
+  AllDataFF = 1;
+  NonZero = 0;
+  for (i=0; i<9; i++)
   {
-    ShowDisplayData();
+    w1buffer[i]=w1_read();
+    ShowDisplayData11Times();
+    if (w1buffer[i] != 0xFF)
+    {
+      AllDataFF = 0;
+    }
+    if (w1buffer[i] != 0x00)
+    {
+      NonZero = 1;
+    }
+  }                       
+  Initializing = 0;//хватит показывать заставку
+  i=w1_dow_crc8(w1buffer,8);
+  if (ErrorCounter == 0) if (w1buffer[0] == 0x50) if (w1buffer[1] == 0x05)
+  {
+    //Имитируем ошибку передачи, т.к. если после нескольких ошибок пришло значение 85
+    //то это просто некорректно закончилось измерение температуры
+    i--;
   }
-  t2=w1_read();   //MSB //читаем старший байт данных     
-  
+  if (NonZero == 0)
+  {
+    //Имитируем ошибку передачи, т.к. датчик не может прислать все нули
+    i--;
+  }
+  if (i != w1buffer[8])
+  {
+      //ошибка при передаче
+      ErrorLevel = 1;//это просто сбой
+      if (AllDataFF)
+      {
+      //это обрыв
+        ErrorLevel = 2;
+      }
+      else
+      {
+        if (w1buffer[0] == 0x50) if (w1buffer[1] == 0x05)
+        {
+          ErrorLevel = 3;
+        }
+        if (NonZero == 0)
+        {
+          ErrorLevel = 4;
+        }
+      }
+      if (ErrorCounter > 0)
+      {
+        ErrorCounter--;
+      }
+      if (ErrorCounter == 0)
+      {
+        ErrorDetected = 1;
+      }
+  }
+  else
+  {
+    //ErrorLevel = 0;
+  //t1=w1buffer[0];   //LSB //читаем младший байт данных
+  //t2=w1buffer[1];   //MSB //читаем старший байт данных     
+  val = (int*)&w1buffer[0];
+  //*val = *val;
+  Tnew = //1000 + 
+  (*val) * 10 / 16;
+  RefreshDisplay();               //Обновление данных на индикаторе.
+  ErrorCounter = MaxDataErrors + 1;                   
   // значения из даташита (для проверки раскоментировать нужное значение)
 
   //+125°C
@@ -405,56 +613,54 @@ if (Updating)           //если в этот раз читаем температуру, то
   
   
   
-  Ff = (t1 & 0x0F);           //из LSB выделяем дробную часть значения температуры
-  t2 = t2 << 4; 
-  t1 = t1 >> 4;
-  T = (t2 & 0xF0) | (t1 & 0x0F);    //после объедининия смещённых частей LSB и MSB объединяем 
-                                    //их и получаем целую часть значения температуры.
-                                    //подробней - смотри даташит.
-  
-  if (T & 0b10000000) //если отрицательная температура
-  { 
-    Ff = ~Ff + 1;         //инвертируем значение дробной части и добавляем адын.
-    Ff = Ff & 0b00001111; //убираем лишние биты
-    
-    if (!Ff)              //если дробная часть равна "0"
-    {
-      T--;                //значение температуры уменьшаем на адын
-    }   
-    
-    #ifndef CorCode //  *** Grey4ip  ***
-    Tnew = 1000 - (((~T & 0xFF) * 10U) + (Ff * 10U / 16));  //вычисляем значение температуры если T < 0. 
-                                                          //Формат хранения - смотри строку 58 этого файла.
-    #else
-    Tnew = CorT - (((~T & 0xFF) * 10U) + ((Ff * 10U) / 16));  //вычисляем значение температуры если T < 0. с коррекцией
-    #endif
+//   Ff = (t1 & 0x0F);           //из LSB выделяем дробную часть значения температуры
+//   t2 = t2 << 4; 
+//   t1 = t1 >> 4;
+//   T = (t2 & 0xF0) | (t1 & 0x0F);    //после объедининия смещённых частей LSB и MSB объединяем 
+//                                     //их и получаем целую часть значения температуры.
+//                                     //подробней - смотри даташит.
+//   
+//   if (T & 0b10000000) //если отрицательная температура
+//   { 
+//     Ff = ~Ff + 1;         //инвертируем значение дробной части и добавляем адын.
+//     Ff = Ff & 0b00001111; //убираем лишние биты
+//     
+//     if (!Ff)              //если дробная часть равна "0"
+//     {
+//       T--;                //значение температуры уменьшаем на адын
+//     }   
+//     
+//     Tnew = 1000 - (((~T & 0xFF) * 10U) + (Ff * 10U / 16));  //вычисляем значение температуры если T < 0. 
+//                                                           //Формат хранения - смотри строку 58 этого файла.
+//   }
+//   else
+//   { 
+//     Tnew = 1000 + (T * 10U) + ((Ff * 10U) / 16);            //вычисляем значение температуры если Т > 0. 
+//                                                           //Формат хранения - смотри строку 58 этого файла.
+//   }    
+  //Tnew = Tnew + 0; 
   }
-  else
-  { 
-   #ifndef CorCode //  *** Grey4ip  ***
-   Tnew = 1000 + (T * 10U) + ((Ff * 10U) / 16);            //вычисляем значение температуры если Т > 0. 
-                                                          //Формат хранения - смотри строку 58 этого файла.
-   #else
-   Tnew = CorT + (T * 10U) + ((Ff * 10U) / 16);            //вычисляем значение температуры если Т > 0.
-   #endif
-  }    
-  Tnew = Tnew + 0;
-  Initialising = 0;//хватит показывать заставку
 }
 else
 {
-  w1_write(0x44);          //выдаём в шину 1-wire код 0xCC, что значит "Convert T"
+  w1_write(0x44);          //выдаём в шину 1-wire код 0x44, что значит "Convert T"
 } 
 
-
-if (!Initialising)
+if (ErrorCounter == 0)
+{
+  PORTD.3 = 0;
+  PORTD.2 = 0;
+  NeedResetLoad = 1;
+  LoadOn = ShowDotWhenError;              
+}
+else if (!Initializing)
 {
 Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
 
 if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 {                              //то выключаем нагрузку
-  PORTD.3 = 1;
   PORTD.2 = 0;              
+  PORTD.3 = 1;
   LoadOn = 0;
   NeedResetLoad = 0;              
 }             
@@ -468,7 +674,7 @@ if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (устано
   LoadOn = 1;  
   NeedResetLoad = 0;              
 } 
-}
+}//if errorCounter
 
 if (Counter > 0)                //Counter - переменная для подсчёта времени отображения различных режимов
 {                               
@@ -478,9 +684,10 @@ else                            //пока не станет равной "0".
 {
   View = 0;                     //если она =0, то сбрасываем текущий режим на "0"
 }                                                           
-
 RefreshDisplay();               //Обновление данных на индикаторе.
-
+#ifdef NO_BLINK
+skipDelay = 0;
+#endif
 }
 
 // Declare your global variables here
@@ -534,8 +741,8 @@ CLKPR=0x00;
 TCCR0A=0x00;
 TCCR0B=0x05;
 TCNT0=0x00;
-OCR0A=0x00;
-OCR0B=0x00;
+// OCR0A=0x00;
+// OCR0B=0x00;
 
 // Timer/Counter 1 initialization
 // Clock source: System Clock
@@ -553,12 +760,12 @@ TCCR1A=0x00;
 TCCR1B=0x04;
 TCNT1H=0xFF;
 TCNT1L=0xFE;
-ICR1H=0x00;
-ICR1L=0x00;
-OCR1AH=0x00;
-OCR1AL=0x00;
-OCR1BH=0x00;
-OCR1BL=0x00;
+// ICR1H=0x00;
+// ICR1L=0x00;
+// OCR1AH=0x00;
+// OCR1AL=0x00;
+// OCR1BH=0x00;
+// OCR1BL=0x00;
 
 // External Interrupt(s) initialization
 // INT0: Off
@@ -581,26 +788,29 @@ USICR=0x00;
 // Analog Comparator Input Capture by Timer/Counter 1: Off
 ACSR=0x80;
 
-//Tnew = 1000;                //Это чтобы на экране был "0.0" при включении питания
-
-if ((eeT_LoadOn > 2250) | (eeT_LoadOn < 450))    //если в EEPROM значение > 2250 или < 450 значит он не прошился, или 
-  eeT_LoadOn = 1280;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
-if (eeDeltaT > 900)
-  eeDeltaT = 10; 
-#ifdef CorCode //  *** Grey4ip  ***
-if ((eeCorT > MaxCorT) || (eeCorT < MinCorT))    // если в EEPROM значение > MaxCorT°C или < MinCorT°C значит он не прошился, // mod by Grey4ip
-  eeCorT = 1000;                        // или чё-то глюкануло, поэтому запишем туда начальные значения. // mod by Grey4ip
+#ifdef Blinking
+DimmerCounter = 0;
 #endif
+//Tnew = 0;                //Просто обнуляем, тыща больше не нужна
+
+if (!(eeDeltaT + 1))//проверка на FFFF - значение после стирания EEPROM
+{
+  eeT_LoadOn = TLoadOn_Default;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
+  eeDeltaT = DeltaT_Default;  
+}
+
+if ((eeT_LoadOn > TLoadOn_Max) || (eeT_LoadOn < TLoadOn_Min)) //если в EEPROM значение > Max или < Min значит он не прошился, или
+  eeT_LoadOn = TLoadOn_Default;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
+if (eeDeltaT > DeltaT_Max || eeDeltaT < DeltaT_Min)
+  eeDeltaT = DeltaT_Default;  
   
 T_LoadOn = eeT_LoadOn;  //читаем значение Установленной температуры из EEPROM в RAM
 DeltaT = eeDeltaT;      //читаем значение Дэльты из EEPROM в RAM
-#ifdef CorCode //  *** Grey4ip  ***
-CorT = eeCorT;      // читаем значение Коррекции из EEPROM в RAM
-#endif
 
-Initialising = 1;
-NeedResetLoad = 1;
-
+ErrorLevel = 0; 
+ErrorCounter = 1;       //При включении обязательно показываем даже первую ошибку
+Initializing = 1;
+LoadOn = ShowDotAtStartup;//Точка включения нагрузки не должна гореть при старте, но для cold и heat это разные значения 
 RefreshDisplay();       //Обновление данных на индикаторе.
 
 // w1_init();              //инициализация шины 1-wire
@@ -608,7 +818,6 @@ RefreshDisplay();       //Обновление данных на индикаторе.
 // w1_write(0x44);         //выдаём в шину 1-wire код 0xCC, что значит "Convert T"
 Updating = 1;
 
-                        
 KbdInit();              //инициализация клавиатуры :)
 
 // Global enable interrupts
@@ -618,7 +827,13 @@ while (1)
       {
       // Place your code here
       #asm("cli");               //запрещаем прерывания
-      ShowDisplayData();         //обновляем экран
+//   #ifdef NO_BLINK
+//   skipDelay = 0;
+//   #endif
+      ShowDisplayData11Times();         //обновляем экран
+//   #ifdef NO_BLINK
+//   skipDelay = 1;
+//   #endif
       #asm("sei");               //разрешаем прерывания
       };  
                           
