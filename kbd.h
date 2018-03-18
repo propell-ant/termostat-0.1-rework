@@ -4,6 +4,7 @@
 #define    TRUE    (!FALSE)
 #define    FALSE   0
 #define    BYTE    unsigned char
+#define    INT8    char
 #define    WORD    unsigned short int
 #define    BOOLEAN char
 #define    CARDINAL unsigned long int

@@ -1,6 +1,57 @@
+#ifndef TERMOSTAT_LED_INCLUDED
+#define TERMOSTAT_LED_INCLUDED
+
 /*
-Здесь задаются все константы, названия портов, и т.п.
+Здесь задаются все константы, названия портов, включаются и выключаются опциональные блоки и т.п.
 */
+
+/*
+ * Различные отключаемые опции
+ * для включения опции нужно удалить 
+ * символы "//" перед словом #define
+ *
+ */
+
+// Опция отображения ошибок шины 1-wire
+#define ShowDataErrors
+
+// Опция отображения заставки (----) при включении термостата
+//#define ShowWelcomeScreen
+
+// Опция подавления мерцания индикатора
+//#define NO_BLINK
+
+// Опция моргающей индикации в определенных режимах
+//#define Blinking
+
+// Опция настройки поправки к показаниям датчика
+#define CorCode
+
+// Опция ненастраиваемой поправки (не забываем про формат записи значений, см. ниже), скобки не убираем
+//#define CorT_Static (0)
+                 
+#define View_Max 2
+#define SHOW_Normal 0
+#define SHOW_TLoadOn 1
+#define SHOW_DeltaT 2
+
+
+#ifdef CorCode
+#define SHOW_CorT 3   
+#undef View_Max
+#define View_Max 3
+#endif
+#ifdef ShowDataErrors
+#ifdef CorCode
+#define SHOW_Error 4
+#undef View_Max
+#define View_Max 4
+#else
+#define SHOW_Error 3
+#undef View_Max
+#define View_Max 3
+#endif
+#endif
 
 //разряды индикатора
 #define DIGIT1 PORTD.5
@@ -9,6 +60,7 @@
 #define DIGIT4 PORTD.4
 
 //таблица символов
+#define SYMBOLS_LEN 15
 #define SymbolsArray {\
 0b11111010,/*0xFA,   //0 */ \
 0b10000010,/*0x82,   //1 */ \
@@ -25,7 +77,8 @@
 /*0b01110000,//0x70,   //t */ \
 0b10011011,/*0x9B,   //d */ \
 /*0b01011000,//0x58,   //L */ \
-0b01111001 /*0x79    //  */ \
+0b01111000, /*0x78   //C  */ \
+0b01111001 /*0x79    //E  */ \
 }
                 
 //температура представлена так:
@@ -38,11 +91,17 @@
 //85°C = 850
 //125°C = 1250       
 
-
+// Диапазоны допустимых значений настроек
 #define TLoadOn_Default 280
 #define TLoadOn_Min -550
 #define TLoadOn_Max 1250
 
 #define DeltaT_Default 10
 #define DeltaT_Min 1
-#define DeltaT_Max 900
+#define DeltaT_Max 250
+
+#define CorT_Default 0
+#define CorT_Min -99
+#define CorT_Max 99      
+
+#endif
