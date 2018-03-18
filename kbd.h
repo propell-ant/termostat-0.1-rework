@@ -8,7 +8,7 @@
 #define    BOOLEAN char
 #define    CARDINAL unsigned long int
 
-extern bit btKeyUpdate;     // = 1, когда обнаружено нажание на клавишу
+extern BOOLEAN btKeyUpdate;     // = 1, когда обнаружено нажание на клавишу
 
 /**************************************************************************\
     Инициализация модуля (переменных и железа)
