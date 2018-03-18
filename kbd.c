@@ -18,7 +18,10 @@
 extern BYTE View;
 extern BYTE Counter;
 extern WORD T_LoadOn;
-extern WORD DeltaT;
+extern WORD DeltaT; 
+extern WORD* curMenuValue;
+extern WORD* curMenuMin;
+extern WORD* curMenuMax;
 extern void RefreshDisplay(void);
 #endif
 
@@ -142,7 +145,6 @@ void ProcessKey(void)
             {
               case 0:               //если был режим "Текущая температура", то
                 View = 1;           //переходим в режим "Установленная температура"
-                Counter = 5;        //и взводим счётчик на 5 секунд.
               break;
               case 1:               //если мы в режиме "Установленная температура", то 
                 if (T_LoadOn > 450) //если "Установленная температура" > -55°C, то 
@@ -151,7 +153,6 @@ void ProcessKey(void)
                   RefreshDisplay(); //обновляем данные на экране     
                 }
                 View = 1;           //удерживаем в режиме "Установленная температура"
-                Counter = 5;        //и взводим счётчик на 5 секунд.
               break;
               case 2:               //если мы в режиме "Дэльта", то 
                 if (DeltaT > 1)     //если "Дэльта" больше 0,1°, то 
@@ -159,10 +160,16 @@ void ProcessKey(void)
                   DeltaT --;        //уменьшаем Дэльту на 0,1°
                   RefreshDisplay(); //обновляем данные на экране
                 }
-                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
+              #ifdef CorCode
+              case 4:                   //если мы в режиме "Коррекции", то
+                if (CorT > MinCorT)
+                {
+                    CorT--;         //уменьшаем значение на 0,1°
+                }
+                break;
+              #endif
             }
-            
         break;
             
         case KEY_2:                 // Была нажата клавиша Плюс 
@@ -170,7 +177,6 @@ void ProcessKey(void)
             {                       
               case 0:               //если был режим "Текущая температура", то
                 View = 1;           //переходим в режим "Установленная температура"
-                Counter = 5;        //и взводим счётчик на 5 секунд.
               break;
               case 1:               //если мы в режиме "Установленная температура", то
                 if (T_LoadOn < (2250 - DeltaT))    //если температура ниже 125,0° - Дэельта
@@ -179,7 +185,6 @@ void ProcessKey(void)
                   RefreshDisplay(); //обновляем данные на экране    
                 }             
                 View = 1;           //удерживаем в режиме "Установленная температура"
-                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
               case 2:
                 if (DeltaT < 900) if ((T_LoadOn + DeltaT) < 2250)   //если Дельта меньше 90,0°, то
@@ -187,19 +192,32 @@ void ProcessKey(void)
                   DeltaT ++;        //то увеличиваем Дэльту на 0,1°
                   RefreshDisplay(); //обновляем данные на экране
                 }
-                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
+              #ifdef CorCode
+              case 4:                   //если мы в режиме "Коррекции", то
+                if (CorT < MaxCorT)
+                {
+                    CorT++;
+                }
+              break;
+              #endif
             }
-        break;  
+       break;  
         
         case KEY_3:               // Была нажаты обе кноки вместе.
+        #ifdef CorCode
+            if (View == 2)      // Если режим "Дэльта",
+            {
+                View = 4;         // то переходим в режим "Коррекции"
+            }
+            else                // иначе
+        #endif
             View = 2;              //переходим в режим "Дэльта"
-            Counter = 5;           //и взводим счётчик ещё на 5 секунд.
         break;
                       
         default:
         break;
 	
     }
-    
+    Counter = 5;           //и взводим счётчик ещё на 5 секунд.    
 }

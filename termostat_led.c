@@ -41,9 +41,9 @@ Data Stack size     : 32
      
 BYTE byDisplay[4]={11,11,11,11};        // буфер данных, для вывода на экран     
 
-BOOLEAN Updating;         //служебная переменная
-BOOLEAN Minus;            //равна "1" если температура отрицательная
-BOOLEAN LoadOn;           //равна "1" если включена нагрузка
+bit Updating;         //служебная переменная
+bit Minus;            //равна "1" если температура отрицательная
+bit LoadOn;           //равна "1" если включена нагрузка
 bit Initialising;        //равна "1" до получения первого значения температуры с датчика
 
 BYTE Counter = 0;         //служебная переменная, для подсчёта времени возврата в основной режим отображения
@@ -51,14 +51,39 @@ BYTE View = 0;            //определяет в каком режиме отображения находится устр
                           //0 - основной - Текущая температура
                           //1 - Установленная температура
                           //2 - Дэльта
+union SettingsU Settings;
+// struct SVars
+// {
+//   WORD _Tnew;
+//   WORD _T_LoadOn;
+//   WORD _DeltaT;
+// };
+// 
+// union SettingsU {
+//             WORD data[4];
+//             struct SVars vars;
+//             } Settings;
+// 
+// 
+// //WORD Tnew;                //для хранения нового значения измеренной температуры
+// #define Tnew Settings.vars._Tnew
+// //WORD T_LoadOn;            //для хранения значения Установленной температуры
+// #define T_LoadOn Settings.vars._T_LoadOn
+// //WORD DeltaT;              //для хранения значения Дэльты
+// #define DeltaT Settings.vars._DeltaT
+#ifdef CorCode //  *** Grey4ip  ***
+WORD CorT;                //для хранения коррекции
+#endif
+//WORD* curMenuValue;
 
-WORD Tnew;                //для хранения нового значения измеренной температуры
-WORD T_LoadOn;            //для хранения значения Установленной температуры
-WORD DeltaT;              //для хранения значения Дэльты
-
+// flash WORD MinMenu[3]={10,20,30};
+//flash WORD MaxMenu[3]={11,21,31};
 bit NeedResetLoad = 0;
 eeprom WORD eeT_LoadOn = 1280;   //1280 = +28°C 1140 = +14°C 
 eeprom WORD eeDeltaT = 10;       //1°C
+#ifdef CorCode //  *** Grey4ip  ***
+eeprom WORD eeCorT = 1000; //0°C
+#endif
 
 //температура для удобства представлена так:
 // - до 1000 = отрицательная
@@ -88,7 +113,7 @@ BYTE byCharacter[15] = {0xFA,     //0
                 0xEB,      //9 
                 0x00,      //blank   
                 0x01,     //-
-                0x70,     //t
+                0x78,     //C
                 0x9B,     //d
                 0x58      //L
                 }; 
@@ -144,7 +169,12 @@ exit:
   {
     byDisplay[0] = 13;     
   }
-    
+#ifdef CorCode          //  *** Grey4ip  ***
+    else if (View == 4) // Если режим настройки коррекции, то
+    {
+      byDisplay[0] = 12; // выводим букву "С" в первом разряде
+    }
+#endif    
 }
 
 /************************************************************************\
@@ -255,6 +285,8 @@ void RefreshDisplay(void)
         eeT_LoadOn = T_LoadOn;
       if (DeltaT != eeDeltaT)
         eeDeltaT = DeltaT;
+      if (CorT != eeCorT)
+        eeCorT = CorT;
     break;
     case 1:
       Data = T_LoadOn;
@@ -263,6 +295,11 @@ void RefreshDisplay(void)
     case 2:
       Data = DeltaT + 1000; 
     break;
+    #ifdef CorCode //  *** Grey4ip  ***
+    case 4: // Выводим сдвиг температуры датчика
+      Data = CorT;
+    break;
+    #endif
   }
       
   PrepareData(Data);      
@@ -385,13 +422,21 @@ if (Updating)           //если в этот раз читаем температуру, то
       T--;                //значение температуры уменьшаем на адын
     }   
     
+    #ifndef CorCode //  *** Grey4ip  ***
     Tnew = 1000 - (((~T & 0xFF) * 10U) + (Ff * 10U / 16));  //вычисляем значение температуры если T < 0. 
                                                           //Формат хранения - смотри строку 58 этого файла.
+    #else
+    Tnew = CorT - (((~T & 0xFF) * 10U) + ((Ff * 10U) / 16));  //вычисляем значение температуры если T < 0. с коррекцией
+    #endif
   }
   else
   { 
-    Tnew = 1000 + (T * 10U) + ((Ff * 10U) / 16);            //вычисляем значение температуры если Т > 0. 
+   #ifndef CorCode //  *** Grey4ip  ***
+   Tnew = 1000 + (T * 10U) + ((Ff * 10U) / 16);            //вычисляем значение температуры если Т > 0. 
                                                           //Формат хранения - смотри строку 58 этого файла.
+   #else
+   Tnew = CorT + (T * 10U) + ((Ff * 10U) / 16);            //вычисляем значение температуры если Т > 0.
+   #endif
   }    
   Tnew = Tnew + 0;
   Initialising = 0;//хватит показывать заставку
@@ -542,9 +587,16 @@ if ((eeT_LoadOn > 2250) | (eeT_LoadOn < 450))    //если в EEPROM значение > 2250
   eeT_LoadOn = 1280;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
 if (eeDeltaT > 900)
   eeDeltaT = 10; 
+#ifdef CorCode //  *** Grey4ip  ***
+if ((eeCorT > MaxCorT) || (eeCorT < MinCorT))    // если в EEPROM значение > MaxCorT°C или < MinCorT°C значит он не прошился, // mod by Grey4ip
+  eeCorT = 1000;                        // или чё-то глюкануло, поэтому запишем туда начальные значения. // mod by Grey4ip
+#endif
   
 T_LoadOn = eeT_LoadOn;  //читаем значение Установленной температуры из EEPROM в RAM
 DeltaT = eeDeltaT;      //читаем значение Дэльты из EEPROM в RAM
+#ifdef CorCode //  *** Grey4ip  ***
+CorT = eeCorT;      // читаем значение Коррекции из EEPROM в RAM
+#endif
 
 Initialising = 1;
 NeedResetLoad = 1;
