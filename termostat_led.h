@@ -8,7 +8,7 @@
 //#define Cathode           //раскоментировать, если индикатор с ОК
 #define Anode           //раскоментировать, если индикатор с ОА
 
-//#define heat            //точка отображается если T < Tуст.
+#define heat            //точка отображается если T < Tуст.
 //#define cold            //точка отображается если T > Tуст.
 
 /*
@@ -35,6 +35,18 @@
 
 // Опция ненастраиваемой поправки (не забываем про формат записи значений, см. ниже), скобки не убираем
 //#define CorT_Static (0)
+
+// Опция повышения точности измерений за счет более редкого опроса датчика
+//#define PREVENT_SENSOR_SELF_HEATING
+
+#ifndef PREVENT_SENSOR_SELF_HEATING
+#define T1_PRESCALER 0x04
+#define T1_OFFSET 0x85EE
+#else
+#define T1_PRESCALER 0x05
+#define T1_OFFSET 0x39A5
+#define T1_OFFSET_LONG 0xE17B
+#endif
                  
 #define View_Max 2
 #define SHOW_Normal 0
@@ -60,11 +72,21 @@
 #endif
 
 //разряды индикатора
+#define DISPLAY_PORT PORTB
+#define DISPLAY_PINS PINB
+#define DISPLAY_DDR  DDRB
+
+#define MINUS_PIN_MASK_BASE 0b00000001
+#define DOT_PIN_MASK_BASE 0b00000100
+#define UNDERSCORE_PIN_MASK_BASE 0b00001000
+
 #define DIGIT1 PORTD.5
 #define DIGIT2 PORTD.1
 #define DIGIT3 PORTD.0
 #define DIGIT4 PORTD.4
 
+#define OUTPIN_NO PORTD.2 // Нормально открытый выход
+#define OUTPIN_NC PORTD.3 // Нормально закрытый выход
 //таблица символов
 #define SYMBOLS_LEN 15
 #define SymbolsArray {\

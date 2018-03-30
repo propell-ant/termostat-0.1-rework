@@ -124,6 +124,17 @@ bit DigitsActive = 0;
   #endif
 #endif
 
+#ifdef Anode
+#define MINUS_PIN_MASK (~MINUS_PIN_MASK_BASE)
+#define DOT_PIN_MASK (~DOT_PIN_MASK_BASE)
+#define UNDERSCORE_PIN_MASK (~UNDERSCORE_PIN_MASK_BASE)
+#endif
+#ifdef Cathode
+#define MINUS_PIN_MASK (MINUS_PIN_MASK_BASE)
+#define DOT_PIN_MASK (DOT_PIN_MASK_BASE)
+#define UNDERSCORE_PIN_MASK (UNDERSCORE_PIN_MASK_BASE)
+#endif
+
 //Это две переменные для "занимания места"
 //чтобы данные, записанные предыдущей версией прошивки не влияли на новую версию
 //(тип и формат хранения изменился)
@@ -306,7 +317,7 @@ void ShowDisplayData11Times(void)
   }              
   #endif        
  
-  PORTB = byCharacter[byDisplay[0]];
+  DISPLAY_PORT = byCharacter[byDisplay[0]];
 //   if (Minus)
 //   {
 //     PORTB = PINB | 0b00000001;
@@ -314,35 +325,35 @@ void ShowDisplayData11Times(void)
   #ifdef heat
   if (LoadOn)
   {
-    PORTB = PINB | 0b00000100;
+    DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
   }
   #endif
  
   #ifdef cold
   if (!LoadOn)
   {
-    PORTB = PINB | 0b00000100;
+    DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
   }
   #endif          
   if (View == SHOW_TLoadOn)
   {
-    PORTB = PINB | 0b00001000;
+    DISPLAY_PORT = DISPLAY_PINS | UNDERSCORE_PIN_MASK;
   }
   DIGIT1 = DigitsActive;
   delay_us(LED_delay);
   DIGIT1 = 1;    
      
-  PORTB = byCharacter[byDisplay[1]];
+  DISPLAY_PORT = byCharacter[byDisplay[1]];
   DIGIT2 = DigitsActive;
   delay_us(LED_delay);
   DIGIT2 = 1;
       
-  PORTB = byCharacter[byDisplay[2]] | 0b00000100;
+  DISPLAY_PORT = byCharacter[byDisplay[2]] | DOT_PIN_MASK;
   DIGIT3 = DigitsActive;
   delay_us(LED_delay);
   DIGIT3 = 1;
       
-  PORTB = byCharacter[byDisplay[3]];
+  DISPLAY_PORT = byCharacter[byDisplay[3]];
   DIGIT4 = DigitsActive;
   delay_us(LED_delay);
   DIGIT4 = 1;
@@ -364,7 +375,7 @@ void ShowDisplayData11Times(void)
     DigitsActive = 0;
   }                      
   #endif        
-  PORTB = ~byCharacter[byDisplay[0]];  
+  DISPLAY_PORT = ~byCharacter[byDisplay[0]];  
 //   if (Minus)
 //   {
 //     PORTB = PINB & 0b11111110;
@@ -372,35 +383,35 @@ void ShowDisplayData11Times(void)
   #ifdef heat
   if (LoadOn)
   {
-    PORTB = PINB & 0b11111011;
+    DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
   }           
   #endif
   
   #ifdef cold
   if (!LoadOn)
   {
-    PORTB = PINB & 0b11111011;
+    DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
   }           
   #endif
   if (View == SHOW_TLoadOn)
   {
-    PORTB = PINB & 0b11110111;
+    DISPLAY_PORT = DISPLAY_PINS & UNDERSCORE_PIN_MASK;
   } 
   DIGIT1 = DigitsActive;
   delay_us(LED_delay);
   DIGIT1 = 0;    
      
-  PORTB = ~byCharacter[byDisplay[1]];
+  DISPLAY_PORT = ~byCharacter[byDisplay[1]];
   DIGIT2 = DigitsActive;
   delay_us(LED_delay);
   DIGIT2 = 0;
       
-  PORTB = ~byCharacter[byDisplay[2]] & 0b11111011;
+  DISPLAY_PORT = ~byCharacter[byDisplay[2]] & DOT_PIN_MASK;
   DIGIT3 = DigitsActive;
   delay_us(LED_delay);
   DIGIT3 = 0;
       
-  PORTB = ~byCharacter[byDisplay[3]];
+  DISPLAY_PORT = ~byCharacter[byDisplay[3]];
   DIGIT4 = DigitsActive;
   delay_us(LED_delay);
   DIGIT4 = 0;
@@ -416,7 +427,18 @@ interrupt [TIM1_OVF] void timer1_ovf_isr(void)
   int Temp;
   int *val;
 // Reinitialize Timer 1 value
-TCNT1=0x85EE;
+#ifdef PREVENT_SENSOR_SELF_HEATING
+if (Updating)           //если в этот раз читаем температуру, то 
+{
+TCNT1=T1_OFFSET_LONG;
+}
+else
+{
+TCNT1=T1_OFFSET;
+}
+#else
+TCNT1=T1_OFFSET;
+#endif
 //TCNT1L=0xD1;
 #ifdef EliminateFlicker
 skipDelay = 1;
@@ -529,8 +551,10 @@ else
 #ifdef ShowDataErrors
 if (ErrorCounter == 0)
 {
-  PORTD.3 = 0;
-  PORTD.2 = 0;
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 0;
+  #endif
+  OUTPIN_NO = 0;
   NeedResetLoad = 1;
   LoadOn = ShowDotWhenError;              
 }
@@ -542,8 +566,10 @@ Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
 
 if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 {                              //то выключаем нагрузку
-  PORTD.2 = 0;              
-  PORTD.3 = 1;
+  OUTPIN_NO = 0;              
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 1;
+  #endif
   LoadOn = 0;
   NeedResetLoad = 0;              
 }             
@@ -552,8 +578,10 @@ Temp = T_LoadOn;                //Temp - временная переменная.
 
 if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
 {                               //то включаем нагрузку
-  PORTD.3 = 0;
-  PORTD.2 = 1;
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 0;
+  #endif
+  OUTPIN_NO = 1;
   LoadOn = 1;  
   NeedResetLoad = 0;              
 } 
@@ -597,8 +625,8 @@ CLKPR=0x00;
         PORTA=0b00000011;
         DDRA= 0b00000000;
         
-        PORTB=0b00000000;
-        DDRB= 0b11111111;
+        DISPLAY_PORT=0b00000000;
+        DISPLAY_DDR =0b11111111;
         
          
         #ifdef Cathode  
@@ -612,8 +640,10 @@ CLKPR=0x00;
         #endif
 
 //выше уже проинициализировали
-//PORTD.3 = 0;
-//PORTD.2 = 0;
+//#ifdef OUTPIN_NC
+//OUTPIN_NC = 1;
+//#endif             
+//OUTPIN_NO = 0; 
 
 // Timer/Counter 0 initialization
 // Clock source: System Clock
@@ -640,7 +670,7 @@ TCNT0=0x00;
 // Compare A Match Interrupt: Off
 // Compare B Match Interrupt: Off
 TCCR1A=0x00;
-TCCR1B=0x04;
+TCCR1B=T1_PRESCALER;
 TCNT1H=0xFF;
 TCNT1L=0xFE;
 // ICR1H=0x00;
