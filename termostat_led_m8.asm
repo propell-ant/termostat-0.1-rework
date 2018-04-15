@@ -1272,33 +1272,13 @@ __GLOBAL_INI_END:
 ;// 1 Wire Bus interface functions
 ;#include <1wire.h>
 ;
-;#ifdef ORIG_PORT_MAP
-;#define ONE_WIRE_PORTNAME PORTD
-;#define ONE_WIRE_PORTNUM 6
-;// 1 Wire Bus functions
-;#asm
-;   .equ __w1_port=0x12 ;PORTD
-;   .equ __w1_bit=6
-;#endasm
-;#endif
-;#ifdef DIP_COMPACT_PORT_MAP
-;#define ONE_WIRE_PORTNAME PORTC
-;#define ONE_WIRE_PORTNUM 0
-;// 1 Wire Bus functions
-;#asm
-;   .equ __w1_port=0x15 ;PORTC
-;   .equ __w1_bit=0
-;#endasm
-;#endif
-;#ifdef TQFP_PORT_MAP
 ;#define ONE_WIRE_PORTNAME PORTC
 ;#define ONE_WIRE_PORTNUM 4
 ;// 1 Wire Bus functions
 ;#asm
    .equ __w1_port=0x15 ;PORTC
    .equ __w1_bit=4
-; 0000 0034 #endasm
-;#endif
+; 0000 0021 #endasm
 ;
 ;
 ;#include <1wire.h>
@@ -1324,8 +1304,8 @@ __GLOBAL_INI_END:
 ;
 ;// буфер данных, для вывода на экран
 ;BYTE byDisplay[4]
-; 0000 004F #ifdef ShowWelcomeScreen
-; 0000 0050 ={11,11,11,11}
+; 0000 003B #ifdef ShowWelcomeScreen
+; 0000 003C ={11,11,11,11}
 
 	.DSEG
 ;#endif
@@ -1425,14 +1405,14 @@ __GLOBAL_INI_END:
 ;/************************************************************************\
 ;\************************************************************************/
 ;void PrepareData(int Data)
-; 0000 00B2 {
+; 0000 009E {
 
 	.CSEG
 _PrepareData:
 ; .FSTART _PrepareData
-; 0000 00B3     BYTE i;
-; 0000 00B4     int D;
-; 0000 00B5     if (Initializing)
+; 0000 009F     BYTE i;
+; 0000 00A0     int D;
+; 0000 00A1     if (Initializing)
 	ST   -Y,R27
 	ST   -Y,R26
 	RCALL __SAVELOCR4
@@ -1440,38 +1420,38 @@ _PrepareData:
 ;	i -> R17
 ;	D -> R18,R19
 	SBRC R2,4
-; 0000 00B6     {
-; 0000 00B7       return;
+; 0000 00A2     {
+; 0000 00A3       return;
 	RJMP _0x2020001
-; 0000 00B8     }
-; 0000 00B9     if (Data < 0)
+; 0000 00A4     }
+; 0000 00A5     if (Data < 0)
 	LDD  R26,Y+5
 	TST  R26
 	BRPL _0x6
-; 0000 00BA     {
-; 0000 00BB       D = -Data;
+; 0000 00A6     {
+; 0000 00A7       D = -Data;
 	LDD  R30,Y+4
 	LDD  R31,Y+4+1
 	RCALL __ANEGW1
 	MOVW R18,R30
-; 0000 00BC     }
-; 0000 00BD     else
+; 0000 00A8     }
+; 0000 00A9     else
 	RJMP _0x7
 _0x6:
-; 0000 00BE     {
-; 0000 00BF       D = Data;
+; 0000 00AA     {
+; 0000 00AB       D = Data;
 	__GETWRS 18,19,4
-; 0000 00C0     }
+; 0000 00AC     }
 _0x7:
-; 0000 00C1 
-; 0000 00C2     //Преобразуем в десятичное представление
-; 0000 00C3     for(i=0; i<4; i++)
+; 0000 00AD 
+; 0000 00AE     //Преобразуем в десятичное представление
+; 0000 00AF     for(i=0; i<4; i++)
 	LDI  R17,LOW(0)
 _0x9:
 	CPI  R17,4
 	BRSH _0xA
-; 0000 00C4     {
-; 0000 00C5        byDisplay[3-i] = D % 10;
+; 0000 00B0     {
+; 0000 00B1        byDisplay[3-i] = D % 10;
 	LDI  R30,LOW(3)
 	SUB  R30,R17
 	LDI  R31,0
@@ -1484,93 +1464,93 @@ _0x9:
 	RCALL __MODW21
 	MOVW R26,R22
 	ST   X,R30
-; 0000 00C6        D /= 10;
+; 0000 00B2        D /= 10;
 	MOVW R26,R18
 	LDI  R30,LOW(10)
 	LDI  R31,HIGH(10)
 	RCALL __DIVW21
 	MOVW R18,R30
-; 0000 00C7     }
+; 0000 00B3     }
 	SUBI R17,-1
 	RJMP _0x9
 _0xA:
-; 0000 00C8 
-; 0000 00C9     if (byDisplay[0] == 0)
+; 0000 00B4 
+; 0000 00B5     if (byDisplay[0] == 0)
 	LDS  R30,_byDisplay
 	CPI  R30,0
 	BRNE _0xB
-; 0000 00CA     {
-; 0000 00CB       byDisplay[0] = 10;
+; 0000 00B6     {
+; 0000 00B7       byDisplay[0] = 10;
 	LDI  R30,LOW(10)
 	STS  _byDisplay,R30
-; 0000 00CC       if (byDisplay[1] == 0)
+; 0000 00B8       if (byDisplay[1] == 0)
 	__GETB1MN _byDisplay,1
 	CPI  R30,0
 	BRNE _0xC
-; 0000 00CD       {
-; 0000 00CE         byDisplay[1] = 10;
+; 0000 00B9       {
+; 0000 00BA         byDisplay[1] = 10;
 	LDI  R30,LOW(10)
 	__PUTB1MN _byDisplay,1
-; 0000 00CF       }
-; 0000 00D0     }
+; 0000 00BB       }
+; 0000 00BC     }
 _0xC:
-; 0000 00D1     if (Data < 0)
+; 0000 00BD     if (Data < 0)
 _0xB:
 	LDD  R26,Y+5
 	TST  R26
 	BRPL _0xD
-; 0000 00D2     {
-; 0000 00D3       byDisplay[0] = 11;
+; 0000 00BE     {
+; 0000 00BF       byDisplay[0] = 11;
 	LDI  R30,LOW(11)
 	STS  _byDisplay,R30
-; 0000 00D4     }
-; 0000 00D5     switch (View)
+; 0000 00C0     }
+; 0000 00C1     switch (View)
 _0xD:
 	MOV  R30,R4
-; 0000 00D6     {
-; 0000 00D7         case SHOW_DeltaT:
+; 0000 00C2     {
+; 0000 00C3         case SHOW_DeltaT:
 	CPI  R30,LOW(0x2)
 	BRNE _0x11
-; 0000 00D8           byDisplay[0] = 12;
+; 0000 00C4           byDisplay[0] = 12;
 	LDI  R30,LOW(12)
-	RJMP _0x70
-; 0000 00D9           break;
-; 0000 00DA         #ifdef CorCode
-; 0000 00DB         case SHOW_CorT:
-; 0000 00DC           byDisplay[0] = 13;
-; 0000 00DD           if (Data < 0)
-; 0000 00DE           {
-; 0000 00DF             byDisplay[1] = 11;
-; 0000 00E0           }
-; 0000 00E1           break;
-; 0000 00E2         #endif
-; 0000 00E3         #ifdef ShowDataErrors
-; 0000 00E4         case SHOW_Error:
+	RJMP _0x6E
+; 0000 00C5           break;
+; 0000 00C6         #ifdef CorCode
+; 0000 00C7         case SHOW_CorT:
+; 0000 00C8           byDisplay[0] = 13;
+; 0000 00C9           if (Data < 0)
+; 0000 00CA           {
+; 0000 00CB             byDisplay[1] = 11;
+; 0000 00CC           }
+; 0000 00CD           break;
+; 0000 00CE         #endif
+; 0000 00CF         #ifdef ShowDataErrors
+; 0000 00D0         case SHOW_Error:
 _0x11:
 	CPI  R30,LOW(0x3)
-	BREQ _0x71
-; 0000 00E5           byDisplay[0] = 14;
-; 0000 00E6           break;
-; 0000 00E7         case SHOW_Normal:
+	BREQ _0x6F
+; 0000 00D1           byDisplay[0] = 14;
+; 0000 00D2           break;
+; 0000 00D3         case SHOW_Normal:
 	CPI  R30,0
 	BRNE _0x10
-; 0000 00E8           if (ErrorCounter == 0)
+; 0000 00D4           if (ErrorCounter == 0)
 	TST  R12
 	BRNE _0x14
-; 0000 00E9           {
-; 0000 00EA             byDisplay[0] = 14;
-_0x71:
+; 0000 00D5           {
+; 0000 00D6             byDisplay[0] = 14;
+_0x6F:
 	LDI  R30,LOW(14)
-_0x70:
+_0x6E:
 	STS  _byDisplay,R30
-; 0000 00EB           }
-; 0000 00EC           break;
+; 0000 00D7           }
+; 0000 00D8           break;
 _0x14:
-; 0000 00ED         #endif
-; 0000 00EE     }
+; 0000 00D9         #endif
+; 0000 00DA     }
 _0x10:
-; 0000 00EF 
-; 0000 00F0 }
+; 0000 00DB 
+; 0000 00DC }
 _0x2020001:
 	RCALL __LOADLOCR4
 	ADIW R28,6
@@ -1583,103 +1563,103 @@ _0x2020001:
 ;      Выход: -
 ;\************************************************************************/
 ;void RefreshDisplay(void)
-; 0000 00F8 {
+; 0000 00E4 {
 _RefreshDisplay:
 ; .FSTART _RefreshDisplay
-; 0000 00F9   int Data;
-; 0000 00FA   switch (View)
+; 0000 00E5   int Data;
+; 0000 00E6   switch (View)
 	RCALL __SAVELOCR2
 ;	Data -> R16,R17
 	MOV  R30,R4
-; 0000 00FB   {
-; 0000 00FC     case SHOW_Normal:
+; 0000 00E7   {
+; 0000 00E8     case SHOW_Normal:
 	CPI  R30,0
 	BRNE _0x18
-; 0000 00FD       #ifdef ShowDataErrors
-; 0000 00FE       if (ErrorCounter == 0)
+; 0000 00E9       #ifdef ShowDataErrors
+; 0000 00EA       if (ErrorCounter == 0)
 	TST  R12
 	BRNE _0x19
-; 0000 00FF       {
-; 0000 0100         Data = ErrorLevel;
+; 0000 00EB       {
+; 0000 00EC         Data = ErrorLevel;
 	MOV  R16,R13
 	CLR  R17
-; 0000 0101       }
-; 0000 0102       else
+; 0000 00ED       }
+; 0000 00EE       else
 	RJMP _0x1A
 _0x19:
-; 0000 0103       #endif
-; 0000 0104       {
-; 0000 0105         Data = Tnew;
+; 0000 00EF       #endif
+; 0000 00F0       {
+; 0000 00F1         Data = Tnew;
 	MOVW R16,R6
-; 0000 0106       }
+; 0000 00F2       }
 _0x1A:
-; 0000 0107       if (T_LoadOn != eeT_LoadOn)
+; 0000 00F3       if (T_LoadOn != eeT_LoadOn)
 	RCALL SUBOPT_0x0
 	RCALL __EEPROMRDW
 	CP   R30,R8
 	CPC  R31,R9
 	BREQ _0x1B
-; 0000 0108         eeT_LoadOn = T_LoadOn;
+; 0000 00F4         eeT_LoadOn = T_LoadOn;
 	MOVW R30,R8
 	RCALL SUBOPT_0x0
 	RCALL __EEPROMWRW
-; 0000 0109       if (DeltaT != eeDeltaT)
+; 0000 00F5       if (DeltaT != eeDeltaT)
 _0x1B:
 	RCALL SUBOPT_0x1
 	RCALL __EEPROMRDW
 	CP   R30,R10
 	CPC  R31,R11
 	BREQ _0x1C
-; 0000 010A         eeDeltaT = DeltaT;
+; 0000 00F6         eeDeltaT = DeltaT;
 	MOVW R30,R10
 	RCALL SUBOPT_0x1
 	RCALL __EEPROMWRW
-; 0000 010B       #ifdef CorCode
-; 0000 010C       if (CorT != eeCorT)
-; 0000 010D         eeCorT = CorT;
-; 0000 010E       #endif
-; 0000 010F     break;
+; 0000 00F7       #ifdef CorCode
+; 0000 00F8       if (CorT != eeCorT)
+; 0000 00F9         eeCorT = CorT;
+; 0000 00FA       #endif
+; 0000 00FB     break;
 _0x1C:
 	RJMP _0x17
-; 0000 0110     case SHOW_TLoadOn:
+; 0000 00FC     case SHOW_TLoadOn:
 _0x18:
 	CPI  R30,LOW(0x1)
 	BRNE _0x1D
-; 0000 0111       Data = T_LoadOn;
+; 0000 00FD       Data = T_LoadOn;
 	MOVW R16,R8
-; 0000 0112     break;
+; 0000 00FE     break;
 	RJMP _0x17
-; 0000 0113 
-; 0000 0114     case SHOW_DeltaT:
+; 0000 00FF 
+; 0000 0100     case SHOW_DeltaT:
 _0x1D:
 	CPI  R30,LOW(0x2)
 	BRNE _0x1E
-; 0000 0115       Data = DeltaT;
+; 0000 0101       Data = DeltaT;
 	MOVW R16,R10
-; 0000 0116     break;
+; 0000 0102     break;
 	RJMP _0x17
-; 0000 0117 #ifdef CorCode
-; 0000 0118     case SHOW_CorT:
-; 0000 0119         Data = CorT;
-; 0000 011A     break;
-; 0000 011B #endif
-; 0000 011C #ifdef ShowDataErrors
-; 0000 011D     case SHOW_Error:
+; 0000 0103 #ifdef CorCode
+; 0000 0104     case SHOW_CorT:
+; 0000 0105         Data = CorT;
+; 0000 0106     break;
+; 0000 0107 #endif
+; 0000 0108 #ifdef ShowDataErrors
+; 0000 0109     case SHOW_Error:
 _0x1E:
 	CPI  R30,LOW(0x3)
 	BRNE _0x17
-; 0000 011E         Data = ErrorLevel;
+; 0000 010A         Data = ErrorLevel;
 	MOV  R16,R13
 	CLR  R17
-; 0000 011F     break;
-; 0000 0120 #endif
-; 0000 0121   }
+; 0000 010B     break;
+; 0000 010C #endif
+; 0000 010D   }
 _0x17:
-; 0000 0122 
-; 0000 0123   PrepareData(Data);
+; 0000 010E 
+; 0000 010F   PrepareData(Data);
 	MOVW R26,R16
 	RCALL _PrepareData
-; 0000 0124 }
+; 0000 0110 }
 	LD   R16,Y+
 	LD   R17,Y+
 	RET
@@ -1687,139 +1667,139 @@ _0x17:
 ;
 ;// Timer 0 overflow interrupt service routine
 ;interrupt [TIM0_OVF] void timer0_ovf_isr(void)
-; 0000 0128 {
+; 0000 0114 {
 _timer0_ovf_isr:
 ; .FSTART _timer0_ovf_isr
 	RCALL SUBOPT_0x2
-; 0000 0129 // Reinitialize Timer 0 value
-; 0000 012A TCNT0=0xB5;
+; 0000 0115 // Reinitialize Timer 0 value
+; 0000 0116 TCNT0=0xB5;
 	LDI  R30,LOW(181)
 	OUT  0x32,R30
-; 0000 012B // if (BlinkCounter < 2 * BlinkHalfPeriod)
-; 0000 012C // {
-; 0000 012D #ifdef Blinking
-; 0000 012E   BlinkCounter++;
+; 0000 0117 // if (BlinkCounter < 2 * BlinkHalfPeriod)
+; 0000 0118 // {
+; 0000 0119 #ifdef Blinking
+; 0000 011A   BlinkCounter++;
 	LDS  R30,_BlinkCounter
 	SUBI R30,-LOW(1)
 	STS  _BlinkCounter,R30
-; 0000 012F   BlinkCounter &= BlinkCounterMask;
+; 0000 011B   BlinkCounter &= BlinkCounterMask;
 	ANDI R30,LOW(0x3F)
 	STS  _BlinkCounter,R30
-; 0000 0130 #endif
-; 0000 0131 //}
-; 0000 0132 // else
-; 0000 0133 // {
-; 0000 0134 //   BlinkCounter = 0;
-; 0000 0135 // }
-; 0000 0136 
-; 0000 0137 ScanKbd();
+; 0000 011C #endif
+; 0000 011D //}
+; 0000 011E // else
+; 0000 011F // {
+; 0000 0120 //   BlinkCounter = 0;
+; 0000 0121 // }
+; 0000 0122 
+; 0000 0123 ScanKbd();
 	RCALL _ScanKbd
-; 0000 0138 }
-	RJMP _0x74
+; 0000 0124 }
+	RJMP _0x71
 ; .FEND
 ;
 ;void ShowDisplayData11Times(void)
-; 0000 013B {
+; 0000 0127 {
 _ShowDisplayData11Times:
 ; .FSTART _ShowDisplayData11Times
-; 0000 013C   BYTE i;
-; 0000 013D   #ifdef EliminateFlicker
-; 0000 013E   if (!skipDelay)
+; 0000 0128   BYTE i;
+; 0000 0129   #ifdef EliminateFlicker
+; 0000 012A   if (!skipDelay)
 	ST   -Y,R17
 ;	i -> R17
 	SBRC R2,1
 	RJMP _0x20
-; 0000 013F   {
-; 0000 0140     delay_us(LED_delay_add);
+; 0000 012B   {
+; 0000 012C     delay_us(LED_delay_add);
 	__DELAY_USW 1600
-; 0000 0141   }
-; 0000 0142   #endif
-; 0000 0143 
-; 0000 0144   for (i=0; i<4; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
+; 0000 012D   }
+; 0000 012E   #endif
+; 0000 012F 
+; 0000 0130   for (i=0; i<4; i++)    //шоб не моргало изображение делаем обновление эрана 10 раз
 _0x20:
 	LDI  R17,LOW(0)
 _0x22:
 	CPI  R17,4
 	BRLO PC+2
 	RJMP _0x23
-; 0000 0145   {
-; 0000 0146 //    ShowDisplayData();
-; 0000 0147  #ifdef Cathode
-; 0000 0148   #ifdef Blinking
-; 0000 0149   //BYTE
-; 0000 014A   DigitsActive = 0;
+; 0000 0131   {
+; 0000 0132 //    ShowDisplayData();
+; 0000 0133  #ifdef Cathode
+; 0000 0134   #ifdef Blinking
+; 0000 0135   //BYTE
+; 0000 0136   DigitsActive = 0;
 	CLT
 	BLD  R3,1
-; 0000 014B   DimmerCounter++;
+; 0000 0137   DimmerCounter++;
 	LDS  R30,_DimmerCounter
 	SUBI R30,-LOW(1)
 	STS  _DimmerCounter,R30
-; 0000 014C //  if (BlinkCounter > BlinkHalfPeriod)
-; 0000 014D   if (BlinkCounter & BlinkCounterHalfMask)
+; 0000 0138 //  if (BlinkCounter > BlinkHalfPeriod)
+; 0000 0139   if (BlinkCounter & BlinkCounterHalfMask)
 	LDS  R30,_BlinkCounter
 	ANDI R30,LOW(0x20)
 	BREQ _0x24
-; 0000 014E   if (View == SHOW_Normal)
+; 0000 013A   if (View == SHOW_Normal)
 	TST  R4
 	BRNE _0x25
-; 0000 014F   #ifdef Blinking
-; 0000 0150   if (GoBlinking)
+; 0000 013B   #ifdef Blinking
+; 0000 013C   if (GoBlinking)
 	SBRS R3,0
 	RJMP _0x26
-; 0000 0151   #endif
-; 0000 0152   if (DimmerCounter % DimmerDivider == 0)
+; 0000 013D   #endif
+; 0000 013E   if (DimmerCounter % DimmerDivider == 0)
 	LDS  R26,_DimmerCounter
 	LDI  R30,LOW(0)
 	CPI  R30,0
 	BRNE _0x27
-; 0000 0153   {
-; 0000 0154     DigitsActive = 1;
+; 0000 013F   {
+; 0000 0140     DigitsActive = 1;
 	SET
 	BLD  R3,1
-; 0000 0155   }
-; 0000 0156   #endif
-; 0000 0157 
-; 0000 0158   DISPLAY_PORT = byCharacter[byDisplay[0]];
+; 0000 0141   }
+; 0000 0142   #endif
+; 0000 0143 
+; 0000 0144   DISPLAY_PORT = byCharacter[byDisplay[0]];
 _0x27:
 _0x26:
 _0x25:
 _0x24:
 	LDS  R30,_byDisplay
 	RCALL SUBOPT_0x3
-; 0000 0159 //   if (Minus)
-; 0000 015A //   {
-; 0000 015B //     PORTB = PINB | 0b00000001;
-; 0000 015C //   }
-; 0000 015D   #ifdef heat
-; 0000 015E   if (LoadOn)
-; 0000 015F   {
-; 0000 0160     DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
-; 0000 0161   }
-; 0000 0162   #endif
-; 0000 0163 
-; 0000 0164   #ifdef cold
-; 0000 0165   if (!LoadOn)
+; 0000 0145 //   if (Minus)
+; 0000 0146 //   {
+; 0000 0147 //     PORTB = PINB | 0b00000001;
+; 0000 0148 //   }
+; 0000 0149   #ifdef heat
+; 0000 014A   if (LoadOn)
+; 0000 014B   {
+; 0000 014C     DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
+; 0000 014D   }
+; 0000 014E   #endif
+; 0000 014F 
+; 0000 0150   #ifdef cold
+; 0000 0151   if (!LoadOn)
 	SBRC R2,3
 	RJMP _0x28
-; 0000 0166   {
-; 0000 0167     DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
+; 0000 0152   {
+; 0000 0153     DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
 	IN   R30,0x10
 	ORI  R30,4
 	OUT  0x12,R30
-; 0000 0168   }
-; 0000 0169   #endif
-; 0000 016A   if (View == SHOW_TLoadOn)
+; 0000 0154   }
+; 0000 0155   #endif
+; 0000 0156   if (View == SHOW_TLoadOn)
 _0x28:
 	LDI  R30,LOW(1)
 	CP   R30,R4
 	BRNE _0x29
-; 0000 016B   {
-; 0000 016C     DISPLAY_PORT = DISPLAY_PINS | UNDERSCORE_PIN_MASK;
+; 0000 0157   {
+; 0000 0158     DISPLAY_PORT = DISPLAY_PINS | UNDERSCORE_PIN_MASK;
 	IN   R30,0x10
 	ORI  R30,8
 	OUT  0x12,R30
-; 0000 016D   }
-; 0000 016E   DIGIT1 = DigitsActive;
+; 0000 0159   }
+; 0000 015A   DIGIT1 = DigitsActive;
 _0x29:
 	SBRC R3,1
 	RJMP _0x2A
@@ -1828,15 +1808,15 @@ _0x29:
 _0x2A:
 	SBI  0x15,2
 _0x2B:
-; 0000 016F   delay_us(LED_delay);
+; 0000 015B   delay_us(LED_delay);
 	RCALL SUBOPT_0x4
-; 0000 0170   DIGIT1 = 1;
+; 0000 015C   DIGIT1 = 1;
 	SBI  0x15,2
-; 0000 0171 
-; 0000 0172   DISPLAY_PORT = byCharacter[byDisplay[1]];
+; 0000 015D 
+; 0000 015E   DISPLAY_PORT = byCharacter[byDisplay[1]];
 	__GETB1MN _byDisplay,1
 	RCALL SUBOPT_0x3
-; 0000 0173   DIGIT2 = DigitsActive;
+; 0000 015F   DIGIT2 = DigitsActive;
 	SBRC R3,1
 	RJMP _0x2E
 	CBI  0x15,1
@@ -1844,12 +1824,12 @@ _0x2B:
 _0x2E:
 	SBI  0x15,1
 _0x2F:
-; 0000 0174   delay_us(LED_delay);
+; 0000 0160   delay_us(LED_delay);
 	RCALL SUBOPT_0x4
-; 0000 0175   DIGIT2 = 1;
+; 0000 0161   DIGIT2 = 1;
 	SBI  0x15,1
-; 0000 0176 
-; 0000 0177   DISPLAY_PORT = byCharacter[byDisplay[2]] | DOT_PIN_MASK;
+; 0000 0162 
+; 0000 0163   DISPLAY_PORT = byCharacter[byDisplay[2]] | DOT_PIN_MASK;
 	__GETB1MN _byDisplay,2
 	LDI  R31,0
 	SUBI R30,LOW(-_byCharacter)
@@ -1857,7 +1837,7 @@ _0x2F:
 	LD   R30,Z
 	ORI  R30,4
 	OUT  0x12,R30
-; 0000 0178   DIGIT3 = DigitsActive;
+; 0000 0164   DIGIT3 = DigitsActive;
 	SBRC R3,1
 	RJMP _0x32
 	CBI  0x15,0
@@ -1865,15 +1845,15 @@ _0x2F:
 _0x32:
 	SBI  0x15,0
 _0x33:
-; 0000 0179   delay_us(LED_delay);
+; 0000 0165   delay_us(LED_delay);
 	RCALL SUBOPT_0x4
-; 0000 017A   DIGIT3 = 1;
+; 0000 0166   DIGIT3 = 1;
 	SBI  0x15,0
-; 0000 017B 
-; 0000 017C   DISPLAY_PORT = byCharacter[byDisplay[3]];
+; 0000 0167 
+; 0000 0168   DISPLAY_PORT = byCharacter[byDisplay[3]];
 	__GETB1MN _byDisplay,3
 	RCALL SUBOPT_0x3
-; 0000 017D   DIGIT4 = DigitsActive;
+; 0000 0169   DIGIT4 = DigitsActive;
 	SBRC R3,1
 	RJMP _0x36
 	CBI  0x15,3
@@ -1881,160 +1861,153 @@ _0x33:
 _0x36:
 	SBI  0x15,3
 _0x37:
-; 0000 017E   delay_us(LED_delay);
+; 0000 016A   delay_us(LED_delay);
 	RCALL SUBOPT_0x4
-; 0000 017F   DIGIT4 = 1;
+; 0000 016B   DIGIT4 = 1;
 	SBI  0x15,3
-; 0000 0180 #endif
-; 0000 0181 
-; 0000 0182 #ifdef Anode
-; 0000 0183   #ifdef Blinking
-; 0000 0184   //BYTE
-; 0000 0185   DigitsActive = 1;
-; 0000 0186   DimmerCounter++;
-; 0000 0187 //  if (BlinkCounter > BlinkHalfPeriod)
-; 0000 0188   if (BlinkCounter & BlinkCounterHalfMask)
-; 0000 0189   if (View == SHOW_Normal)
-; 0000 018A   #ifdef Blinking
-; 0000 018B   if (GoBlinking)
-; 0000 018C   #endif
-; 0000 018D   if (DimmerCounter % DimmerDivider == 0)
-; 0000 018E   {
-; 0000 018F     DigitsActive = 0;
-; 0000 0190   }
-; 0000 0191   #endif
-; 0000 0192   DISPLAY_PORT = ~byCharacter[byDisplay[0]];
-; 0000 0193 //   if (Minus)
-; 0000 0194 //   {
-; 0000 0195 //     PORTB = PINB & 0b11111110;
-; 0000 0196 //   }
-; 0000 0197   #ifdef heat
-; 0000 0198   if (LoadOn)
-; 0000 0199   {
-; 0000 019A     DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
-; 0000 019B   }
-; 0000 019C   #endif
-; 0000 019D 
-; 0000 019E   #ifdef cold
-; 0000 019F   if (!LoadOn)
-; 0000 01A0   {
-; 0000 01A1     DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
-; 0000 01A2   }
-; 0000 01A3   #endif
-; 0000 01A4   if (View == SHOW_TLoadOn)
-; 0000 01A5   {
-; 0000 01A6     DISPLAY_PORT = DISPLAY_PINS & UNDERSCORE_PIN_MASK;
-; 0000 01A7   }
-; 0000 01A8   DIGIT1 = DigitsActive;
-; 0000 01A9   delay_us(LED_delay);
-; 0000 01AA   DIGIT1 = 0;
-; 0000 01AB 
-; 0000 01AC   DISPLAY_PORT = ~byCharacter[byDisplay[1]];
-; 0000 01AD   DIGIT2 = DigitsActive;
-; 0000 01AE   delay_us(LED_delay);
-; 0000 01AF   DIGIT2 = 0;
-; 0000 01B0 
-; 0000 01B1   DISPLAY_PORT = ~byCharacter[byDisplay[2]] & DOT_PIN_MASK;
-; 0000 01B2   DIGIT3 = DigitsActive;
-; 0000 01B3   delay_us(LED_delay);
-; 0000 01B4   DIGIT3 = 0;
-; 0000 01B5 
-; 0000 01B6   DISPLAY_PORT = ~byCharacter[byDisplay[3]];
-; 0000 01B7   DIGIT4 = DigitsActive;
-; 0000 01B8   delay_us(LED_delay);
-; 0000 01B9   DIGIT4 = 0;
-; 0000 01BA #endif
-; 0000 01BB 
-; 0000 01BC   }
+; 0000 016C #endif
+; 0000 016D 
+; 0000 016E #ifdef Anode
+; 0000 016F   #ifdef Blinking
+; 0000 0170   //BYTE
+; 0000 0171   DigitsActive = 1;
+; 0000 0172   DimmerCounter++;
+; 0000 0173 //  if (BlinkCounter > BlinkHalfPeriod)
+; 0000 0174   if (BlinkCounter & BlinkCounterHalfMask)
+; 0000 0175   if (View == SHOW_Normal)
+; 0000 0176   #ifdef Blinking
+; 0000 0177   if (GoBlinking)
+; 0000 0178   #endif
+; 0000 0179   if (DimmerCounter % DimmerDivider == 0)
+; 0000 017A   {
+; 0000 017B     DigitsActive = 0;
+; 0000 017C   }
+; 0000 017D   #endif
+; 0000 017E   DISPLAY_PORT = ~byCharacter[byDisplay[0]];
+; 0000 017F //   if (Minus)
+; 0000 0180 //   {
+; 0000 0181 //     PORTB = PINB & 0b11111110;
+; 0000 0182 //   }
+; 0000 0183   #ifdef heat
+; 0000 0184   if (LoadOn)
+; 0000 0185   {
+; 0000 0186     DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
+; 0000 0187   }
+; 0000 0188   #endif
+; 0000 0189 
+; 0000 018A   #ifdef cold
+; 0000 018B   if (!LoadOn)
+; 0000 018C   {
+; 0000 018D     DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
+; 0000 018E   }
+; 0000 018F   #endif
+; 0000 0190   if (View == SHOW_TLoadOn)
+; 0000 0191   {
+; 0000 0192     DISPLAY_PORT = DISPLAY_PINS & UNDERSCORE_PIN_MASK;
+; 0000 0193   }
+; 0000 0194   DIGIT1 = DigitsActive;
+; 0000 0195   delay_us(LED_delay);
+; 0000 0196   DIGIT1 = 0;
+; 0000 0197 
+; 0000 0198   DISPLAY_PORT = ~byCharacter[byDisplay[1]];
+; 0000 0199   DIGIT2 = DigitsActive;
+; 0000 019A   delay_us(LED_delay);
+; 0000 019B   DIGIT2 = 0;
+; 0000 019C 
+; 0000 019D   DISPLAY_PORT = ~byCharacter[byDisplay[2]] & DOT_PIN_MASK;
+; 0000 019E   DIGIT3 = DigitsActive;
+; 0000 019F   delay_us(LED_delay);
+; 0000 01A0   DIGIT3 = 0;
+; 0000 01A1 
+; 0000 01A2   DISPLAY_PORT = ~byCharacter[byDisplay[3]];
+; 0000 01A3   DIGIT4 = DigitsActive;
+; 0000 01A4   delay_us(LED_delay);
+; 0000 01A5   DIGIT4 = 0;
+; 0000 01A6 #endif
+; 0000 01A7 
+; 0000 01A8   }
 	SUBI R17,-1
 	RJMP _0x22
 _0x23:
-; 0000 01BD }
+; 0000 01A9 }
 	LD   R17,Y+
 	RET
 ; .FEND
 ;
 ;// Timer 1 overflow interrupt service routine
 ;interrupt [TIM1_OVF] void timer1_ovf_isr(void)
-; 0000 01C1 {
+; 0000 01AD {
 _timer1_ovf_isr:
 ; .FSTART _timer1_ovf_isr
 	RCALL SUBOPT_0x2
-; 0000 01C2   BYTE i;
-; 0000 01C3   int Temp;
-; 0000 01C4   int *val;
-; 0000 01C5 // Reinitialize Timer 1 value
-; 0000 01C6 #ifdef PREVENT_SENSOR_SELF_HEATING
-; 0000 01C7 if (Updating)           //если в этот раз читаем температуру, то
+; 0000 01AE   BYTE i;
+; 0000 01AF   int Temp;
+; 0000 01B0   int *val;
+; 0000 01B1 // Reinitialize Timer 1 value
+; 0000 01B2 #ifdef PREVENT_SENSOR_SELF_HEATING
+; 0000 01B3 if (Updating)           //если в этот раз читаем температуру, то
+; 0000 01B4 {
+; 0000 01B5 TCNT1=T1_OFFSET_LONG;
+; 0000 01B6 }
+; 0000 01B7 else
+; 0000 01B8 {
+; 0000 01B9 TCNT1=T1_OFFSET;
+; 0000 01BA }
+; 0000 01BB #else
+; 0000 01BC TCNT1=T1_OFFSET;
 	RCALL __SAVELOCR6
 ;	i -> R17
 ;	Temp -> R18,R19
 ;	*val -> R20,R21
-	SBRS R2,2
-	RJMP _0x3A
-; 0000 01C8 {
-; 0000 01C9 TCNT1=T1_OFFSET_LONG;
-	LDI  R30,LOW(57723)
-	LDI  R31,HIGH(57723)
-	RJMP _0x72
-; 0000 01CA }
-; 0000 01CB else
-_0x3A:
-; 0000 01CC {
-; 0000 01CD TCNT1=T1_OFFSET;
-	LDI  R30,LOW(14757)
-	LDI  R31,HIGH(14757)
-_0x72:
+	LDI  R30,LOW(34286)
+	LDI  R31,HIGH(34286)
 	OUT  0x2C+1,R31
 	OUT  0x2C,R30
-; 0000 01CE }
-; 0000 01CF #else
-; 0000 01D0 TCNT1=T1_OFFSET;
-; 0000 01D1 #endif
-; 0000 01D2 //TCNT1L=0xD1;
-; 0000 01D3 #ifdef EliminateFlicker
-; 0000 01D4 skipDelay = 1;
+; 0000 01BD #endif
+; 0000 01BE //TCNT1L=0xD1;
+; 0000 01BF #ifdef EliminateFlicker
+; 0000 01C0 skipDelay = 1;
 	SET
 	BLD  R2,1
-; 0000 01D5 #endif
-; 0000 01D6 w1_init();              //инициализация шины 1-wire
+; 0000 01C1 #endif
+; 0000 01C2 w1_init();              //инициализация шины 1-wire
 	RCALL _w1_init
-; 0000 01D7 ShowDisplayData11Times();
+; 0000 01C3 ShowDisplayData11Times();
 	RCALL _ShowDisplayData11Times
-; 0000 01D8 
-; 0000 01D9 w1_write(0xCC);         //выдаём в шину 1-wire код 0xCC, что значит "Skip ROM"
+; 0000 01C4 
+; 0000 01C5 w1_write(0xCC);         //выдаём в шину 1-wire код 0xCC, что значит "Skip ROM"
 	LDI  R26,LOW(204)
 	RCALL _w1_write
-; 0000 01DA ShowDisplayData11Times();
+; 0000 01C6 ShowDisplayData11Times();
 	RCALL _ShowDisplayData11Times
-; 0000 01DB 
-; 0000 01DC Updating = !Updating;   //это шоб читать температуру через раз
+; 0000 01C7 
+; 0000 01C8 Updating = !Updating;   //это шоб читать температуру через раз
 	LDI  R30,LOW(4)
 	EOR  R2,R30
-; 0000 01DD if (Updating)           //если в этот раз читаем температуру, то
+; 0000 01C9 if (Updating)           //если в этот раз читаем температуру, то
 	SBRS R2,2
-	RJMP _0x3C
-; 0000 01DE {
-; 0000 01DF   w1_write(0xBE);       //выдаём в шину 1-wire код 0xBE, что значит "Read Scratchpad"
+	RJMP _0x3A
+; 0000 01CA {
+; 0000 01CB   w1_write(0xBE);       //выдаём в шину 1-wire код 0xBE, что значит "Read Scratchpad"
 	LDI  R26,LOW(190)
 	RCALL _w1_write
-; 0000 01E0   ShowDisplayData11Times();
+; 0000 01CC   ShowDisplayData11Times();
 	RCALL _ShowDisplayData11Times
-; 0000 01E1 
-; 0000 01E2 #ifdef ShowDataErrors
-; 0000 01E3   AllDataFF = 1;
+; 0000 01CD 
+; 0000 01CE #ifdef ShowDataErrors
+; 0000 01CF   AllDataFF = 1;
 	SET
 	BLD  R2,5
-; 0000 01E4   NonZero = 0;
+; 0000 01D0   NonZero = 0;
 	CLT
 	BLD  R2,6
-; 0000 01E5   for (i=0; i<W1_BUFFER_LEN; i++)
+; 0000 01D1   for (i=0; i<W1_BUFFER_LEN; i++)
 	LDI  R17,LOW(0)
-_0x3E:
+_0x3C:
 	CPI  R17,9
-	BRSH _0x3F
-; 0000 01E6   {
-; 0000 01E7     w1buffer[i]=w1_read();
+	BRSH _0x3D
+; 0000 01D2   {
+; 0000 01D3     w1buffer[i]=w1_read();
 	RCALL SUBOPT_0x5
 	PUSH R31
 	PUSH R30
@@ -2042,45 +2015,45 @@ _0x3E:
 	POP  R26
 	POP  R27
 	ST   X,R30
-; 0000 01E8     ShowDisplayData11Times();
+; 0000 01D4     ShowDisplayData11Times();
 	RCALL _ShowDisplayData11Times
-; 0000 01E9     if (w1buffer[i] != 0xFF)
+; 0000 01D5     if (w1buffer[i] != 0xFF)
 	RCALL SUBOPT_0x5
 	LD   R26,Z
 	CPI  R26,LOW(0xFF)
-	BREQ _0x40
-; 0000 01EA     {
-; 0000 01EB       AllDataFF = 0;
+	BREQ _0x3E
+; 0000 01D6     {
+; 0000 01D7       AllDataFF = 0;
 	CLT
 	BLD  R2,5
-; 0000 01EC     }
-; 0000 01ED     if (w1buffer[i] != 0x00)
-_0x40:
+; 0000 01D8     }
+; 0000 01D9     if (w1buffer[i] != 0x00)
+_0x3E:
 	RCALL SUBOPT_0x5
 	LD   R30,Z
 	CPI  R30,0
-	BREQ _0x41
-; 0000 01EE     {
-; 0000 01EF       NonZero = 1;
+	BREQ _0x3F
+; 0000 01DA     {
+; 0000 01DB       NonZero = 1;
 	SET
 	BLD  R2,6
-; 0000 01F0     }
-; 0000 01F1   }
-_0x41:
-	SUBI R17,-1
-	RJMP _0x3E
+; 0000 01DC     }
+; 0000 01DD   }
 _0x3F:
-; 0000 01F2 #else
-; 0000 01F3   for (i=0; i<W1_BUFFER_LEN; i++)
-; 0000 01F4   {
-; 0000 01F5     w1buffer[i]=w1_read();
-; 0000 01F6   }
-; 0000 01F7 #endif
-; 0000 01F8   Initializing = 0;//хватит показывать заставку
+	SUBI R17,-1
+	RJMP _0x3C
+_0x3D:
+; 0000 01DE #else
+; 0000 01DF   for (i=0; i<W1_BUFFER_LEN; i++)
+; 0000 01E0   {
+; 0000 01E1     w1buffer[i]=w1_read();
+; 0000 01E2   }
+; 0000 01E3 #endif
+; 0000 01E4   Initializing = 0;//хватит показывать заставку
 	CLT
 	BLD  R2,4
-; 0000 01F9 #ifdef ShowDataErrors
-; 0000 01FA   i=w1_dow_crc8(w1buffer,8);
+; 0000 01E5 #ifdef ShowDataErrors
+; 0000 01E6   i=w1_dow_crc8(w1buffer,8);
 	LDI  R30,LOW(_w1buffer)
 	LDI  R31,HIGH(_w1buffer)
 	ST   -Y,R31
@@ -2088,114 +2061,114 @@ _0x3F:
 	LDI  R26,LOW(8)
 	RCALL _w1_dow_crc8
 	MOV  R17,R30
-; 0000 01FB   if (ErrorCounter == 0) if (w1buffer[0] == 0x50) if (w1buffer[1] == 0x05)
+; 0000 01E7   if (ErrorCounter == 0) if (w1buffer[0] == 0x50) if (w1buffer[1] == 0x05)
 	TST  R12
-	BRNE _0x42
+	BRNE _0x40
 	LDS  R26,_w1buffer
 	CPI  R26,LOW(0x50)
-	BRNE _0x43
+	BRNE _0x41
 	__GETB2MN _w1buffer,1
 	CPI  R26,LOW(0x5)
-	BRNE _0x44
-; 0000 01FC   {
-; 0000 01FD     //Имитируем ошибку передачи, т.к. если после нескольких ошибок пришло значение 85
-; 0000 01FE     //то это просто некорректно закончилось измерение температуры
-; 0000 01FF     i--;
+	BRNE _0x42
+; 0000 01E8   {
+; 0000 01E9     //Имитируем ошибку передачи, т.к. если после нескольких ошибок пришло значение 85
+; 0000 01EA     //то это просто некорректно закончилось измерение температуры
+; 0000 01EB     i--;
 	SUBI R17,1
-; 0000 0200   }
-; 0000 0201   if (NonZero == 0)
-_0x44:
-_0x43:
+; 0000 01EC   }
+; 0000 01ED   if (NonZero == 0)
 _0x42:
+_0x41:
+_0x40:
 	SBRS R2,6
-; 0000 0202   {
-; 0000 0203     //Имитируем ошибку передачи, т.к. датчик не может прислать все нули
-; 0000 0204     i--;
+; 0000 01EE   {
+; 0000 01EF     //Имитируем ошибку передачи, т.к. датчик не может прислать все нули
+; 0000 01F0     i--;
 	SUBI R17,1
-; 0000 0205   }
-; 0000 0206   if (i != w1buffer[8])
+; 0000 01F1   }
+; 0000 01F2   if (i != w1buffer[8])
 	__GETB1MN _w1buffer,8
 	CP   R30,R17
-	BREQ _0x46
-; 0000 0207   {
-; 0000 0208       //ошибка при передаче
-; 0000 0209       ErrorLevel = 1;//это просто сбой
+	BREQ _0x44
+; 0000 01F3   {
+; 0000 01F4       //ошибка при передаче
+; 0000 01F5       ErrorLevel = 1;//это просто сбой
 	LDI  R30,LOW(1)
 	MOV  R13,R30
-; 0000 020A       if (AllDataFF)
+; 0000 01F6       if (AllDataFF)
 	SBRS R2,5
-	RJMP _0x47
-; 0000 020B       {
-; 0000 020C       //это обрыв
-; 0000 020D         ErrorLevel = 2;
+	RJMP _0x45
+; 0000 01F7       {
+; 0000 01F8       //это обрыв
+; 0000 01F9         ErrorLevel = 2;
 	LDI  R30,LOW(2)
-	RJMP _0x73
-; 0000 020E       }
-; 0000 020F       else
-_0x47:
-; 0000 0210       {
-; 0000 0211         if (w1buffer[0] == 0x50) if (w1buffer[1] == 0x05)
+	RJMP _0x70
+; 0000 01FA       }
+; 0000 01FB       else
+_0x45:
+; 0000 01FC       {
+; 0000 01FD         if (w1buffer[0] == 0x50) if (w1buffer[1] == 0x05)
 	LDS  R26,_w1buffer
 	CPI  R26,LOW(0x50)
-	BRNE _0x49
+	BRNE _0x47
 	__GETB2MN _w1buffer,1
 	CPI  R26,LOW(0x5)
-	BRNE _0x4A
-; 0000 0212         {
-; 0000 0213           ErrorLevel = 3;
+	BRNE _0x48
+; 0000 01FE         {
+; 0000 01FF           ErrorLevel = 3;
 	LDI  R30,LOW(3)
 	MOV  R13,R30
-; 0000 0214         }
-; 0000 0215         if (NonZero == 0)
-_0x4A:
-_0x49:
+; 0000 0200         }
+; 0000 0201         if (NonZero == 0)
+_0x48:
+_0x47:
 	SBRC R2,6
-	RJMP _0x4B
-; 0000 0216         {
-; 0000 0217           ErrorLevel = 4;
+	RJMP _0x49
+; 0000 0202         {
+; 0000 0203           ErrorLevel = 4;
 	LDI  R30,LOW(4)
-_0x73:
+_0x70:
 	MOV  R13,R30
-; 0000 0218         }
-; 0000 0219       }
-_0x4B:
-; 0000 021A       if (ErrorCounter > 0)
+; 0000 0204         }
+; 0000 0205       }
+_0x49:
+; 0000 0206       if (ErrorCounter > 0)
 	LDI  R30,LOW(0)
 	CP   R30,R12
-	BRSH _0x4C
-; 0000 021B       {
-; 0000 021C         ErrorCounter--;
+	BRSH _0x4A
+; 0000 0207       {
+; 0000 0208         ErrorCounter--;
 	DEC  R12
-; 0000 021D       }
-; 0000 021E       if (ErrorCounter == 0)
-_0x4C:
+; 0000 0209       }
+; 0000 020A       if (ErrorCounter == 0)
+_0x4A:
 	TST  R12
-	BRNE _0x4D
-; 0000 021F       {
-; 0000 0220         #ifdef Blinking
-; 0000 0221         GoBlinking = 1;
+	BRNE _0x4B
+; 0000 020B       {
+; 0000 020C         #ifdef Blinking
+; 0000 020D         GoBlinking = 1;
 	SET
 	BLD  R3,0
-; 0000 0222         #endif
-; 0000 0223       }
-; 0000 0224   }
-_0x4D:
-; 0000 0225   else
-	RJMP _0x4E
-_0x46:
-; 0000 0226   {
-; 0000 0227   #endif
-; 0000 0228   val = (int*)&w1buffer[0];
+; 0000 020E         #endif
+; 0000 020F       }
+; 0000 0210   }
+_0x4B:
+; 0000 0211   else
+	RJMP _0x4C
+_0x44:
+; 0000 0212   {
+; 0000 0213   #endif
+; 0000 0214   val = (int*)&w1buffer[0];
 	__POINTWRM 20,21,_w1buffer
-; 0000 0229   Tnew =
-; 0000 022A   (*val) * 10 / 16
-; 0000 022B   #ifdef CorCode
-; 0000 022C   + CorT
-; 0000 022D   #endif
-; 0000 022E   #ifdef CorT_Static
-; 0000 022F   + CorT_Static
-; 0000 0230   #endif
-; 0000 0231   ;
+; 0000 0215   Tnew =
+; 0000 0216   (*val) * 10 / 16
+; 0000 0217   #ifdef CorCode
+; 0000 0218   + CorT
+; 0000 0219   #endif
+; 0000 021A   #ifdef CorT_Static
+; 0000 021B   + CorT_Static
+; 0000 021C   #endif
+; 0000 021D   ;
 	MOVW R26,R20
 	RCALL __GETW1P
 	LDI  R26,LOW(10)
@@ -2206,138 +2179,138 @@ _0x46:
 	LDI  R31,HIGH(16)
 	RCALL __DIVW21
 	MOVW R6,R30
-; 0000 0232   RefreshDisplay();               //Обновление данных на индикаторе.
+; 0000 021E   RefreshDisplay();               //Обновление данных на индикаторе.
 	RCALL _RefreshDisplay
-; 0000 0233   #ifdef ShowDataErrors
-; 0000 0234   ErrorCounter = MaxDataErrors + 1;
+; 0000 021F   #ifdef ShowDataErrors
+; 0000 0220   ErrorCounter = MaxDataErrors + 1;
 	LDI  R30,LOW(2)
 	MOV  R12,R30
-; 0000 0235   #endif
-; 0000 0236   #ifdef ShowDataErrors
-; 0000 0237   }
-_0x4E:
-; 0000 0238   #endif
-; 0000 0239 }
-; 0000 023A else
-	RJMP _0x4F
-_0x3C:
-; 0000 023B {
-; 0000 023C   w1_write(0x44);          //выдаём в шину 1-wire код 0x44, что значит "Convert T"
+; 0000 0221   #endif
+; 0000 0222   #ifdef ShowDataErrors
+; 0000 0223   }
+_0x4C:
+; 0000 0224   #endif
+; 0000 0225 }
+; 0000 0226 else
+	RJMP _0x4D
+_0x3A:
+; 0000 0227 {
+; 0000 0228   w1_write(0x44);          //выдаём в шину 1-wire код 0x44, что значит "Convert T"
 	LDI  R26,LOW(68)
 	RCALL _w1_write
-; 0000 023D }
-_0x4F:
-; 0000 023E 
-; 0000 023F #ifdef ShowDataErrors
-; 0000 0240 if (ErrorCounter == 0)
+; 0000 0229 }
+_0x4D:
+; 0000 022A 
+; 0000 022B #ifdef ShowDataErrors
+; 0000 022C if (ErrorCounter == 0)
 	TST  R12
-	BRNE _0x50
-; 0000 0241 {
-; 0000 0242   #ifdef OUTPIN_NC
-; 0000 0243   OUTPIN_NC = 0;
-; 0000 0244   #endif
-; 0000 0245   OUTPIN_NO = 0;
+	BRNE _0x4E
+; 0000 022D {
+; 0000 022E   #ifdef OUTPIN_NC
+; 0000 022F   OUTPIN_NC = 0;
+; 0000 0230   #endif
+; 0000 0231   OUTPIN_NO = 0;
 	CBI  0x18,3
-; 0000 0246   NeedResetLoad = 1;
+; 0000 0232   NeedResetLoad = 1;
 	SET
 	BLD  R2,7
-; 0000 0247   LoadOn = ShowDotWhenError;
+; 0000 0233   LoadOn = ShowDotWhenError;
 	BLD  R2,3
-; 0000 0248 }
-; 0000 0249 else
-	RJMP _0x53
-_0x50:
-; 0000 024A #endif
-; 0000 024B if (!Initializing)
+; 0000 0234 }
+; 0000 0235 else
+	RJMP _0x51
+_0x4E:
+; 0000 0236 #endif
+; 0000 0237 if (!Initializing)
 	SBRC R2,4
-	RJMP _0x54
-; 0000 024C {
-; 0000 024D Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
+	RJMP _0x52
+; 0000 0238 {
+; 0000 0239 Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
 	MOVW R30,R10
 	ADD  R30,R8
 	ADC  R31,R9
 	MOVW R18,R30
-; 0000 024E 
-; 0000 024F if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
+; 0000 023A 
+; 0000 023B if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 	__CPWRR 6,7,18,19
-	BRLT _0x55
+	BRLT _0x53
 	SBRC R2,3
-	RJMP _0x57
+	RJMP _0x55
 	SBRS R2,7
-	RJMP _0x56
-_0x57:
-; 0000 0250 {                              //то выключаем нагрузку
-; 0000 0251   OUTPIN_NO = 0;
-	CBI  0x18,3
-; 0000 0252   #ifdef OUTPIN_NC
-; 0000 0253   OUTPIN_NC = 1;
-; 0000 0254   #endif
-; 0000 0255   LoadOn = 0;
-	CLT
-	BLD  R2,3
-; 0000 0256   NeedResetLoad = 0;
-	BLD  R2,7
-; 0000 0257 }
-; 0000 0258 
-; 0000 0259 Temp = T_LoadOn;                //Temp - временная переменная.
-_0x56:
+	RJMP _0x54
 _0x55:
-	MOVW R18,R8
-; 0000 025A 
-; 0000 025B if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
-	__CPWRR 18,19,6,7
-	BRLT _0x5B
-	SBRS R2,3
-	RJMP _0x5D
-	SBRS R2,7
-	RJMP _0x5C
-_0x5D:
-; 0000 025C {                               //то включаем нагрузку
-; 0000 025D   #ifdef OUTPIN_NC
-; 0000 025E   OUTPIN_NC = 0;
-; 0000 025F   #endif
-; 0000 0260   OUTPIN_NO = 1;
-	SBI  0x18,3
-; 0000 0261   LoadOn = 1;
-	SET
-	BLD  R2,3
-; 0000 0262   NeedResetLoad = 0;
+; 0000 023C {                              //то выключаем нагрузку
+; 0000 023D   OUTPIN_NO = 0;
+	CBI  0x18,3
+; 0000 023E   #ifdef OUTPIN_NC
+; 0000 023F   OUTPIN_NC = 1;
+; 0000 0240   #endif
+; 0000 0241   LoadOn = 0;
 	CLT
+	BLD  R2,3
+; 0000 0242   NeedResetLoad = 0;
 	BLD  R2,7
-; 0000 0263 }
-; 0000 0264 }//if errorCounter
-_0x5C:
-_0x5B:
-; 0000 0265 
-; 0000 0266 if (Counter > 0)                //Counter - переменная для подсчёта времени отображения различных режимов
+; 0000 0243 }
+; 0000 0244 
+; 0000 0245 Temp = T_LoadOn;                //Temp - временная переменная.
 _0x54:
 _0x53:
+	MOVW R18,R8
+; 0000 0246 
+; 0000 0247 if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
+	__CPWRR 18,19,6,7
+	BRLT _0x59
+	SBRS R2,3
+	RJMP _0x5B
+	SBRS R2,7
+	RJMP _0x5A
+_0x5B:
+; 0000 0248 {                               //то включаем нагрузку
+; 0000 0249   #ifdef OUTPIN_NC
+; 0000 024A   OUTPIN_NC = 0;
+; 0000 024B   #endif
+; 0000 024C   OUTPIN_NO = 1;
+	SBI  0x18,3
+; 0000 024D   LoadOn = 1;
+	SET
+	BLD  R2,3
+; 0000 024E   NeedResetLoad = 0;
+	CLT
+	BLD  R2,7
+; 0000 024F }
+; 0000 0250 }//if errorCounter
+_0x5A:
+_0x59:
+; 0000 0251 
+; 0000 0252 if (Counter > 0)                //Counter - переменная для подсчёта времени отображения различных режимов
+_0x52:
+_0x51:
 	LDI  R30,LOW(0)
 	CP   R30,R5
-	BRSH _0x61
-; 0000 0267 {
-; 0000 0268   Counter --;                   //если она больше "0", то значит кто-то переключил режим отображения и
+	BRSH _0x5F
+; 0000 0253 {
+; 0000 0254   Counter --;                   //если она больше "0", то значит кто-то переключил режим отображения и
 	DEC  R5
-; 0000 0269 }                               //присвоил ей значение отличное от "0". Значит надо екрементировать,
-; 0000 026A else                            //пока не станет равной "0".
-	RJMP _0x62
-_0x61:
-; 0000 026B {
-; 0000 026C   View = SHOW_Normal;                     //если она =0, то сбрасываем текущий режим на "0"
+; 0000 0255 }                               //присвоил ей значение отличное от "0". Значит надо екрементировать,
+; 0000 0256 else                            //пока не станет равной "0".
+	RJMP _0x60
+_0x5F:
+; 0000 0257 {
+; 0000 0258   View = SHOW_Normal;                     //если она =0, то сбрасываем текущий режим на "0"
 	CLR  R4
-; 0000 026D }
-_0x62:
-; 0000 026E RefreshDisplay();               //Обновление данных на индикаторе.
+; 0000 0259 }
+_0x60:
+; 0000 025A RefreshDisplay();               //Обновление данных на индикаторе.
 	RCALL _RefreshDisplay
-; 0000 026F #ifdef EliminateFlicker
-; 0000 0270 skipDelay = 0;
+; 0000 025B #ifdef EliminateFlicker
+; 0000 025C skipDelay = 0;
 	CLT
 	BLD  R2,1
-; 0000 0271 #endif
-; 0000 0272 }
+; 0000 025D #endif
+; 0000 025E }
 	RCALL __LOADLOCR6
 	ADIW R28,6
-_0x74:
+_0x71:
 	LD   R30,Y+
 	OUT  SREG,R30
 	LD   R31,Y+
@@ -2357,302 +2330,291 @@ _0x74:
 ;// Declare your global variables here
 ;
 ;void main(void)
-; 0000 0277 {
+; 0000 0263 {
 _main:
 ; .FSTART _main
-; 0000 0278 // Declare your local variables here
-; 0000 0279 
-; 0000 027A #ifdef ORIG_PORT_MAP
-; 0000 027B         PORTC=0b00000011;
-; 0000 027C         DDRC= 0b00000000; // весь порт работает на вход (клавиши управления)
-; 0000 027D 
-; 0000 027E         PORTB=0b00000000;
-; 0000 027F         DDRB= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
-; 0000 0280 
-; 0000 0281 
-; 0000 0282         #ifdef Cathode
-; 0000 0283           PORTD=0b01110111; // все разряды индикатора (PORTD.4,.0,.1,.5) поднять, 1wire - поднять, нагрузку - включить ( ...
-; 0000 0284           DDRD= 0b00111111; // все регистры кроме 6 (1wire) и 7 работают на выход
-; 0000 0285         #endif
-; 0000 0286 
-; 0000 0287         #ifdef Anode
-; 0000 0288           PORTD=0b01000100; // все разряды индикатора (PORTD.4,.0,.1,.5) опустить, 1wire - поднять, нагрузку - включить  ...
-; 0000 0289           DDRD= 0b00111111;
-; 0000 028A         #endif
-; 0000 028B #endif
-; 0000 028C #ifdef DIP_COMPACT_PORT_MAP
-; 0000 028D         PORTC=0b00001100; // нагрузку-выключить
-; 0000 028E         DDRC= 0b00000010; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
-; 0000 028F 
-; 0000 0290         PORTB=0b00000000;
-; 0000 0291         DDRB= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
-; 0000 0292 
-; 0000 0293         #ifdef Cathode
-; 0000 0294           PORTD=0b11110000; // разряды индикатора (PORTD.7,.6,.5,.4) поднять, клавиши (PORTD.2 и .3) - поднять
-; 0000 0295           DDRD= 0b11110000; // все регистры кроме 2 и 3 (две клавиши) работают на выход
-; 0000 0296           //PORTA=0b00000011; // разряд индикатора 4 (PORTA.0) поднять, 1wire (PORTA.1) - поднять
-; 0000 0297         #endif
-; 0000 0298         #ifdef Anode
-; 0000 0299           PORTD=0b00000000; // разряды индикатора (PORTD.7,.6,.5,.4) опустить, клавиши (PORTD.2 и .3) - поднять
-; 0000 029A           DDRD= 0b11110000; // все регистры кроме 2 и 3 (две клавиши) работают на выход
-; 0000 029B           //PORTA=0b00000010; // разряд индикатора 4 (PORTA.0) опустить, 1wire (PORTA.1) - поднять
-; 0000 029C         #endif
-; 0000 029D         //DDRA= 0b00000001; // PORTA.0 используется для управления индикатором, PORTA.1 - для 1wire
-; 0000 029E #endif
-; 0000 029F #ifdef TQFP_PORT_MAP
-; 0000 02A0         PORTB=0b00110000; // нагрузку-выключить
-	LDI  R30,LOW(48)
-	OUT  0x18,R30
-; 0000 02A1         DDRB= 0b00111000; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
-	LDI  R30,LOW(56)
-	OUT  0x17,R30
-; 0000 02A2 
-; 0000 02A3         PORTD=0b00000000;
-	LDI  R30,LOW(0)
-	OUT  0x12,R30
-; 0000 02A4         DDRD= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
-	LDI  R30,LOW(255)
-	OUT  0x11,R30
-; 0000 02A5 
-; 0000 02A6         #ifdef Cathode
-; 0000 02A7           PORTC=0b00001111; // разряды индикатора (PORTD.7,.6,.5,.4) поднять, клавиши (PORTD.2 и .3) - поднять
-	LDI  R30,LOW(15)
-	OUT  0x15,R30
-; 0000 02A8           DDRC= 0b00001111; // все регистры кроме 2 и 3 (две клавиши) работают на выход
-	OUT  0x14,R30
-; 0000 02A9           //PORTA=0b00000011; // разряд индикатора 4 (PORTA.0) поднять, 1wire (PORTA.1) - поднять
-; 0000 02AA         #endif
-; 0000 02AB         #ifdef Anode
-; 0000 02AC           PORTC=0b00000000; // разряды индикатора (PORTD.7,.6,.5,.4) опустить, клавиши (PORTD.2 и .3) - поднять
-; 0000 02AD           DDRC= 0b00001111; // все регистры кроме 2 и 3 (две клавиши) работают на выход
-; 0000 02AE           //PORTA=0b00000010; // разряд индикатора 4 (PORTA.0) опустить, 1wire (PORTA.1) - поднять
-; 0000 02AF         #endif
-; 0000 02B0         //DDRA= 0b00000001; // PORTA.0 используется для управления индикатором, PORTA.1 - для 1wire
-; 0000 02B1 #endif
-; 0000 02B2 
-; 0000 02B3 #ifdef OUTPIN_NC
-; 0000 02B4 OUTPIN_NC = 1;
-; 0000 02B5 #endif
-; 0000 02B6 OUTPIN_NO = 0;
+; 0000 0264 // Declare your local variables here
+; 0000 0265 
+; 0000 0266 #ifdef ORIG_PORT_MAP
+; 0000 0267         PORTC=0b00000011;
+; 0000 0268         DDRC= 0b00000000; // весь порт работает на вход (клавиши управления)
+; 0000 0269 
+; 0000 026A         PORTB=0b00000000;
+; 0000 026B         DDRB= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
+; 0000 026C 
+; 0000 026D 
+; 0000 026E         #ifdef Cathode
+; 0000 026F           PORTD=0b01110111; // все разряды индикатора (PORTD.4,.0,.1,.5) поднять, 1wire - поднять, нагрузку - включить ( ...
+; 0000 0270           DDRD= 0b00111111; // все регистры кроме 6 (1wire) и 7 работают на выход
+; 0000 0271         #endif
+; 0000 0272 
+; 0000 0273         #ifdef Anode
+; 0000 0274           PORTD=0b01000100; // все разряды индикатора (PORTD.4,.0,.1,.5) опустить, 1wire - поднять, нагрузку - включить  ...
+; 0000 0275           DDRD= 0b00111111;
+; 0000 0276         #endif
+; 0000 0277 #endif
+; 0000 0278 #ifdef DIP_COMPACT_PORT_MAP
+; 0000 0279         PORTC=0b00001100; // нагрузку-выключить
+; 0000 027A         DDRC= 0b00000010; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
+; 0000 027B 
+; 0000 027C         PORTB=0b00000000;
+; 0000 027D         DDRB= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
+; 0000 027E 
+; 0000 027F         #ifdef Cathode
+; 0000 0280           PORTD=0b11110000; // разряды индикатора (PORTD.7,.6,.5,.4) поднять, клавиши (PORTD.2 и .3) - поднять
+; 0000 0281           DDRD= 0b11110000; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+; 0000 0282           //PORTA=0b00000011; // разряд индикатора 4 (PORTA.0) поднять, 1wire (PORTA.1) - поднять
+; 0000 0283         #endif
+; 0000 0284         #ifdef Anode
+; 0000 0285           PORTD=0b00000000; // разряды индикатора (PORTD.7,.6,.5,.4) опустить, клавиши (PORTD.2 и .3) - поднять
+; 0000 0286           DDRD= 0b11110000; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+; 0000 0287           //PORTA=0b00000010; // разряд индикатора 4 (PORTA.0) опустить, 1wire (PORTA.1) - поднять
+; 0000 0288         #endif
+; 0000 0289         //DDRA= 0b00000001; // PORTA.0 используется для управления индикатором, PORTA.1 - для 1wire
+; 0000 028A #endif
+; 0000 028B #ifdef TQFP_PORT_MAP
+; 0000 028C         PORTB=0b00110000; // нагрузку-выключить
+; 0000 028D         DDRB= 0b00111000; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
+; 0000 028E 
+; 0000 028F         PORTD=0b00000000;
+; 0000 0290         DDRD= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
+; 0000 0291 
+; 0000 0292         #ifdef Cathode
+; 0000 0293           PORTC=0b00001111; // разряды индикатора (PORTD.7,.6,.5,.4) поднять, клавиши (PORTD.2 и .3) - поднять
+; 0000 0294           DDRC= 0b00001111; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+; 0000 0295           //PORTA=0b00000011; // разряд индикатора 4 (PORTA.0) поднять, 1wire (PORTA.1) - поднять
+; 0000 0296         #endif
+; 0000 0297         #ifdef Anode
+; 0000 0298           PORTC=0b00000000; // разряды индикатора (PORTD.7,.6,.5,.4) опустить, клавиши (PORTD.2 и .3) - поднять
+; 0000 0299           DDRC= 0b00001111; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+; 0000 029A           //PORTA=0b00000010; // разряд индикатора 4 (PORTA.0) опустить, 1wire (PORTA.1) - поднять
+; 0000 029B         #endif
+; 0000 029C         //DDRA= 0b00000001; // PORTA.0 используется для управления индикатором, PORTA.1 - для 1wire
+; 0000 029D #endif
+; 0000 029E 
+; 0000 029F #ifdef OUTPIN_NC
+; 0000 02A0 OUTPIN_NC = 1;
+; 0000 02A1 #endif
+; 0000 02A2 OUTPIN_NO = 0;
 	CBI  0x18,3
-; 0000 02B7 
-; 0000 02B8 // Timer/Counter 0 initialization
-; 0000 02B9 // Clock source: System Clock
-; 0000 02BA // Clock value: 8000,000 kHz
-; 0000 02BB // Mode: Normal top=FFh
-; 0000 02BC // OC0A output: Disconnected
-; 0000 02BD // OC0B output: Disconnected
-; 0000 02BE TCCR0=0x05;
+; 0000 02A3 
+; 0000 02A4 // Timer/Counter 0 initialization
+; 0000 02A5 // Clock source: System Clock
+; 0000 02A6 // Clock value: 8000,000 kHz
+; 0000 02A7 // Mode: Normal top=FFh
+; 0000 02A8 // OC0A output: Disconnected
+; 0000 02A9 // OC0B output: Disconnected
+; 0000 02AA TCCR0=0x05;
 	LDI  R30,LOW(5)
 	OUT  0x33,R30
-; 0000 02BF TCNT0=0x00;
+; 0000 02AB TCNT0=0x00;
 	LDI  R30,LOW(0)
 	OUT  0x32,R30
-; 0000 02C0 // OCR0A=0x00;
-; 0000 02C1 // OCR0B=0x00;
-; 0000 02C2 
-; 0000 02C3 // Timer/Counter 1 initialization
-; 0000 02C4 // Clock source: System Clock
-; 0000 02C5 // Clock value: 7,813 kHz
-; 0000 02C6 // Mode: Normal top=FFFFh
-; 0000 02C7 // OC1A output: Discon.
-; 0000 02C8 // OC1B output: Discon.
-; 0000 02C9 // Noise Canceler: Off
-; 0000 02CA // Input Capture on Falling Edge
-; 0000 02CB // Timer 1 Overflow Interrupt: On
-; 0000 02CC // Input Capture Interrupt: Off
-; 0000 02CD // Compare A Match Interrupt: Off
-; 0000 02CE // Compare B Match Interrupt: Off
-; 0000 02CF TCCR1A=0x00;
+; 0000 02AC // OCR0A=0x00;
+; 0000 02AD // OCR0B=0x00;
+; 0000 02AE 
+; 0000 02AF // Timer/Counter 1 initialization
+; 0000 02B0 // Clock source: System Clock
+; 0000 02B1 // Clock value: 7,813 kHz
+; 0000 02B2 // Mode: Normal top=FFFFh
+; 0000 02B3 // OC1A output: Discon.
+; 0000 02B4 // OC1B output: Discon.
+; 0000 02B5 // Noise Canceler: Off
+; 0000 02B6 // Input Capture on Falling Edge
+; 0000 02B7 // Timer 1 Overflow Interrupt: On
+; 0000 02B8 // Input Capture Interrupt: Off
+; 0000 02B9 // Compare A Match Interrupt: Off
+; 0000 02BA // Compare B Match Interrupt: Off
+; 0000 02BB TCCR1A=0x00;
 	OUT  0x2F,R30
-; 0000 02D0 TCCR1B=T1_PRESCALER;
-	LDI  R30,LOW(5)
+; 0000 02BC TCCR1B=T1_PRESCALER;
+	LDI  R30,LOW(4)
 	OUT  0x2E,R30
-; 0000 02D1 TCNT1H=0xFF;
+; 0000 02BD TCNT1H=0xFF;
 	LDI  R30,LOW(255)
 	OUT  0x2D,R30
-; 0000 02D2 TCNT1L=0xFE;
+; 0000 02BE TCNT1L=0xFE;
 	LDI  R30,LOW(254)
 	OUT  0x2C,R30
-; 0000 02D3 // ICR1H=0x00;
-; 0000 02D4 // ICR1L=0x00;
-; 0000 02D5 // OCR1AH=0x00;
-; 0000 02D6 // OCR1AL=0x00;
-; 0000 02D7 // OCR1BH=0x00;
-; 0000 02D8 // OCR1BL=0x00;
-; 0000 02D9 
-; 0000 02DA // Timer/Counter 2 initialization
-; 0000 02DB // Clock source: System Clock
-; 0000 02DC // Clock value: Timer2 Stopped
-; 0000 02DD // Mode: Normal top=0xFF
-; 0000 02DE // OC2 output: Disconnected
-; 0000 02DF ASSR=0x00;
+; 0000 02BF // ICR1H=0x00;
+; 0000 02C0 // ICR1L=0x00;
+; 0000 02C1 // OCR1AH=0x00;
+; 0000 02C2 // OCR1AL=0x00;
+; 0000 02C3 // OCR1BH=0x00;
+; 0000 02C4 // OCR1BL=0x00;
+; 0000 02C5 
+; 0000 02C6 // Timer/Counter 2 initialization
+; 0000 02C7 // Clock source: System Clock
+; 0000 02C8 // Clock value: Timer2 Stopped
+; 0000 02C9 // Mode: Normal top=0xFF
+; 0000 02CA // OC2 output: Disconnected
+; 0000 02CB ASSR=0x00;
 	LDI  R30,LOW(0)
 	OUT  0x22,R30
-; 0000 02E0 TCCR2=0x00;
+; 0000 02CC TCCR2=0x00;
 	OUT  0x25,R30
-; 0000 02E1 TCNT2=0x00;
+; 0000 02CD TCNT2=0x00;
 	OUT  0x24,R30
-; 0000 02E2 OCR2=0x00;
+; 0000 02CE OCR2=0x00;
 	OUT  0x23,R30
-; 0000 02E3 
-; 0000 02E4 // External Interrupt(s) initialization
-; 0000 02E5 // INT0: Off
-; 0000 02E6 // INT1: Off
-; 0000 02E7 // Interrupt on any change on pins PCINT0-7: Off
-; 0000 02E8 MCUCR=0x00;
+; 0000 02CF 
+; 0000 02D0 // External Interrupt(s) initialization
+; 0000 02D1 // INT0: Off
+; 0000 02D2 // INT1: Off
+; 0000 02D3 // Interrupt on any change on pins PCINT0-7: Off
+; 0000 02D4 MCUCR=0x00;
 	OUT  0x35,R30
-; 0000 02E9 
-; 0000 02EA // Timer(s)/Counter(s) Interrupt(s) initialization
-; 0000 02EB TIMSK=0x05;
+; 0000 02D5 
+; 0000 02D6 // Timer(s)/Counter(s) Interrupt(s) initialization
+; 0000 02D7 TIMSK=0x05;
 	LDI  R30,LOW(5)
 	OUT  0x39,R30
-; 0000 02EC 
-; 0000 02ED // USART initialization
-; 0000 02EE // USART disabled
-; 0000 02EF UCSRB=0x00;
+; 0000 02D8 
+; 0000 02D9 // USART initialization
+; 0000 02DA // USART disabled
+; 0000 02DB UCSRB=0x00;
 	LDI  R30,LOW(0)
 	OUT  0xA,R30
-; 0000 02F0 
-; 0000 02F1 // Analog Comparator initialization
-; 0000 02F2 // Analog Comparator: Off
-; 0000 02F3 // Analog Comparator Input Capture by Timer/Counter 1: Off
-; 0000 02F4 ACSR=0x80;
+; 0000 02DC 
+; 0000 02DD // Analog Comparator initialization
+; 0000 02DE // Analog Comparator: Off
+; 0000 02DF // Analog Comparator Input Capture by Timer/Counter 1: Off
+; 0000 02E0 ACSR=0x80;
 	LDI  R30,LOW(128)
 	OUT  0x8,R30
-; 0000 02F5 SFIOR=0x00;
+; 0000 02E1 SFIOR=0x00;
 	LDI  R30,LOW(0)
 	OUT  0x30,R30
-; 0000 02F6 
-; 0000 02F7 // ADC initialization
-; 0000 02F8 // ADC disabled
-; 0000 02F9 ADCSRA=0x00;
+; 0000 02E2 
+; 0000 02E3 // ADC initialization
+; 0000 02E4 // ADC disabled
+; 0000 02E5 ADCSRA=0x00;
 	OUT  0x6,R30
-; 0000 02FA 
-; 0000 02FB // SPI initialization
-; 0000 02FC // SPI disabled
-; 0000 02FD SPCR=0x00;
+; 0000 02E6 
+; 0000 02E7 // SPI initialization
+; 0000 02E8 // SPI disabled
+; 0000 02E9 SPCR=0x00;
 	OUT  0xD,R30
-; 0000 02FE 
-; 0000 02FF // TWI initialization
-; 0000 0300 // TWI disabled
-; 0000 0301 TWCR=0x00;
+; 0000 02EA 
+; 0000 02EB // TWI initialization
+; 0000 02EC // TWI disabled
+; 0000 02ED TWCR=0x00;
 	OUT  0x36,R30
-; 0000 0302 
-; 0000 0303 #ifdef Blinking
-; 0000 0304 DimmerCounter = 0;
+; 0000 02EE 
+; 0000 02EF #ifdef Blinking
+; 0000 02F0 DimmerCounter = 0;
 	STS  _DimmerCounter,R30
-; 0000 0305 #endif
-; 0000 0306 //Tnew = 0;                //Просто обнуляем, тыща больше не нужна
-; 0000 0307 
-; 0000 0308 if (!(eeDeltaT + 1))//проверка на FFFF - значение после стирания EEPROM
+; 0000 02F1 #endif
+; 0000 02F2 //Tnew = 0;                //Просто обнуляем, тыща больше не нужна
+; 0000 02F3 
+; 0000 02F4 if (!(eeDeltaT + 1))//проверка на FFFF - значение после стирания EEPROM
 	RCALL SUBOPT_0x1
 	RCALL __EEPROMRDW
 	ADIW R30,1
-	BRNE _0x65
-; 0000 0309 {
-; 0000 030A   eeT_LoadOn = TLoadOn_Default;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
+	BRNE _0x63
+; 0000 02F5 {
+; 0000 02F6   eeT_LoadOn = TLoadOn_Default;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
 	RCALL SUBOPT_0x6
-; 0000 030B   eeDeltaT = DeltaT_Default;
+; 0000 02F7   eeDeltaT = DeltaT_Default;
 	RCALL SUBOPT_0x7
-; 0000 030C   #ifdef CorCode
-; 0000 030D   eeCorT = CorT_Default;
-; 0000 030E   #endif
-; 0000 030F }
-; 0000 0310 
-; 0000 0311 if ((eeT_LoadOn > TLoadOn_Max) || (eeT_LoadOn < TLoadOn_Min)) //если в EEPROM значение > Max или < Min значит он не прош ...
-_0x65:
+; 0000 02F8   #ifdef CorCode
+; 0000 02F9   eeCorT = CorT_Default;
+; 0000 02FA   #endif
+; 0000 02FB }
+; 0000 02FC 
+; 0000 02FD if ((eeT_LoadOn > TLoadOn_Max) || (eeT_LoadOn < TLoadOn_Min)) //если в EEPROM значение > Max или < Min значит он не прош ...
+_0x63:
 	RCALL SUBOPT_0x0
 	RCALL __EEPROMRDW
 	CPI  R30,LOW(0x4E3)
 	LDI  R26,HIGH(0x4E3)
 	CPC  R31,R26
-	BRGE _0x67
+	BRGE _0x65
 	CPI  R30,LOW(0xFDDA)
 	LDI  R26,HIGH(0xFDDA)
 	CPC  R31,R26
-	BRGE _0x66
-_0x67:
-; 0000 0312   eeT_LoadOn = TLoadOn_Default;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
+	BRGE _0x64
+_0x65:
+; 0000 02FE   eeT_LoadOn = TLoadOn_Default;                             //чё-то глюкануло, поэтому запишем туда начальные значения.
 	RCALL SUBOPT_0x6
-; 0000 0313 if (eeDeltaT > DeltaT_Max || eeDeltaT < DeltaT_Min)
-_0x66:
+; 0000 02FF if (eeDeltaT > DeltaT_Max || eeDeltaT < DeltaT_Min)
+_0x64:
 	RCALL SUBOPT_0x1
 	RCALL __EEPROMRDW
 	CPI  R30,LOW(0xFB)
 	LDI  R26,HIGH(0xFB)
 	CPC  R31,R26
-	BRGE _0x6A
+	BRGE _0x68
 	SBIW R30,1
-	BRGE _0x69
-_0x6A:
-; 0000 0314   eeDeltaT = DeltaT_Default;
+	BRGE _0x67
+_0x68:
+; 0000 0300   eeDeltaT = DeltaT_Default;
 	RCALL SUBOPT_0x7
-; 0000 0315 #ifdef CorCode
-; 0000 0316 if ((eeCorT > CorT_Max) || (eeCorT < CorT_Min))    // если в EEPROM значение > MaxCorT°C или < MinCorT°C значит он не пр ...
-; 0000 0317   eeCorT = CorT_Default;                        // или чё-то глюкануло, поэтому запишем туда начальные значения. // mod  ...
-; 0000 0318 CorT = eeCorT;
-; 0000 0319 #endif
-; 0000 031A 
-; 0000 031B T_LoadOn = eeT_LoadOn;  //читаем значение Установленной температуры из EEPROM в RAM
-_0x69:
+; 0000 0301 #ifdef CorCode
+; 0000 0302 if ((eeCorT > CorT_Max) || (eeCorT < CorT_Min))    // если в EEPROM значение > MaxCorT°C или < MinCorT°C значит он не пр ...
+; 0000 0303   eeCorT = CorT_Default;                        // или чё-то глюкануло, поэтому запишем туда начальные значения. // mod  ...
+; 0000 0304 CorT = eeCorT;
+; 0000 0305 #endif
+; 0000 0306 
+; 0000 0307 T_LoadOn = eeT_LoadOn;  //читаем значение Установленной температуры из EEPROM в RAM
+_0x67:
 	RCALL SUBOPT_0x0
 	RCALL __EEPROMRDW
 	MOVW R8,R30
-; 0000 031C DeltaT = eeDeltaT;      //читаем значение Дэльты из EEPROM в RAM
+; 0000 0308 DeltaT = eeDeltaT;      //читаем значение Дэльты из EEPROM в RAM
 	RCALL SUBOPT_0x1
 	RCALL __EEPROMRDW
 	MOVW R10,R30
-; 0000 031D 
-; 0000 031E #ifdef ShowDataErrors
-; 0000 031F ErrorLevel = 0;
+; 0000 0309 
+; 0000 030A #ifdef ShowDataErrors
+; 0000 030B ErrorLevel = 0;
 	CLR  R13
-; 0000 0320 ErrorCounter = 1;       //При включении обязательно показываем даже первую ошибку
+; 0000 030C ErrorCounter = 1;       //При включении обязательно показываем даже первую ошибку
 	LDI  R30,LOW(1)
 	MOV  R12,R30
-; 0000 0321 #endif
-; 0000 0322 #ifdef Blinking
-; 0000 0323 GoBlinking = 0;
+; 0000 030D #endif
+; 0000 030E #ifdef Blinking
+; 0000 030F GoBlinking = 0;
 	CLT
 	BLD  R3,0
-; 0000 0324 #endif
-; 0000 0325 Initializing = 1;
+; 0000 0310 #endif
+; 0000 0311 Initializing = 1;
 	SET
 	BLD  R2,4
-; 0000 0326 LoadOn = ShowDotAtStartup;//Точка включения нагрузки не должна гореть при старте, но для cold и heat это разные значения
+; 0000 0312 LoadOn = ShowDotAtStartup;//Точка включения нагрузки не должна гореть при старте, но для cold и heat это разные значения
 	BLD  R2,3
-; 0000 0327 RefreshDisplay();       //Обновление данных на индикаторе.
+; 0000 0313 RefreshDisplay();       //Обновление данных на индикаторе.
 	RCALL _RefreshDisplay
-; 0000 0328 
-; 0000 0329 Updating = 1; // Теперь первое обращение к датчику будет ConvertT
+; 0000 0314 
+; 0000 0315 Updating = 1; // Теперь первое обращение к датчику будет ConvertT
 	SET
 	BLD  R2,2
-; 0000 032A 
-; 0000 032B KbdInit();              //инициализация клавиатуры
+; 0000 0316 
+; 0000 0317 KbdInit();              //инициализация клавиатуры
 	CLT
 	BLD  R2,0
 	RCALL SUBOPT_0x8
-; 0000 032C 
-; 0000 032D // Global enable interrupts
-; 0000 032E #asm("sei")
+; 0000 0318 
+; 0000 0319 // Global enable interrupts
+; 0000 031A #asm("sei")
 	sei
-; 0000 032F 
-; 0000 0330 while (1)
-_0x6C:
-; 0000 0331       {
-; 0000 0332       // Place your code here
-; 0000 0333       #asm("cli");               //запрещаем прерывания
+; 0000 031B 
+; 0000 031C while (1)
+_0x6A:
+; 0000 031D       {
+; 0000 031E       // Place your code here
+; 0000 031F       #asm("cli");               //запрещаем прерывания
 	cli
-; 0000 0334       ShowDisplayData11Times();         //обновляем экран
+; 0000 0320       ShowDisplayData11Times();         //обновляем экран
 	RCALL _ShowDisplayData11Times
-; 0000 0335       #asm("sei");               //разрешаем прерывания
+; 0000 0321       #asm("sei");               //разрешаем прерывания
 	sei
-; 0000 0336       };
-	RJMP _0x6C
-; 0000 0337 
-; 0000 0338 }
-_0x6F:
-	RJMP _0x6F
+; 0000 0322       };
+	RJMP _0x6A
+; 0000 0323 
+; 0000 0324 }
+_0x6D:
+	RJMP _0x6D
 ; .FEND
 ;/**************************************************************************\
 ; FILE ..........: KBD.C
@@ -2711,20 +2673,10 @@ _0x6F:
 	.DSEG
 ;
 ;
-;#ifdef ORIG_PORT_MAP
-;#define KeyCode     ((PINC & 0b00000011) ^ 0b00000011)  // Макрос, который возвращает код нажатой клавиши
-;#endif
 ;
-;#ifdef DIP_COMPACT_PORT_MAP
-;#define KeyCode     (((PINC >> 2) & 0b00000011) ^ 0b00000011)
-;// Клавиши назначены на PORTC.2 и .3, поэтому достаточно сделать сдвиг на 2 бита
-;// Получилось единообразно с исходным вариантом, но на сколько-то тактов дольше
-;#endif
-;#ifdef TQFP_PORT_MAP
 ;#define KeyCode     (((PINB >> 4) & 0b00000011) ^ 0b00000011)
 ;// Клавиши назначены на PORTB.4 и .5, поэтому достаточно сделать сдвиг на 4 бита
 ;// Получилось единообразно с исходным вариантом, но на сколько-то тактов дольше
-;#endif
 ;#define PRESS_CNT   4   // Время, которое клавиша должна удерживаться
 ;#define RELEASE_CNT 4   // Время, после которого клавиша считается отжатым
 ;
@@ -2745,146 +2697,146 @@ _0x6F:
 ;      Выход: -
 ;\**************************************************************************/
 ;void ScanKbd(void)
-; 0001 004F {
+; 0001 0045 {
 
 	.CSEG
 _ScanKbd:
 ; .FSTART _ScanKbd
-; 0001 0050     switch (byScanState)
+; 0001 0046     switch (byScanState)
 	LDS  R30,_byScanState
-; 0001 0051     {
-; 0001 0052         case ST_WAIT_KEY:
+; 0001 0047     {
+; 0001 0048         case ST_WAIT_KEY:
 	CPI  R30,0
 	BRNE _0x20007
-; 0001 0053             // Если обнаружено нажатие на клавишу, то переходим к ее проверке.
-; 0001 0054             if (KeyCode != 0)
+; 0001 0049             // Если обнаружено нажатие на клавишу, то переходим к ее проверке.
+; 0001 004A             if (KeyCode != 0)
 	RCALL SUBOPT_0x9
 	BREQ _0x20008
-; 0001 0055             {
-; 0001 0056                 byCheckedKey = KeyCode;
+; 0001 004B             {
+; 0001 004C                 byCheckedKey = KeyCode;
 	RCALL SUBOPT_0x9
 	STS  _byCheckedKey,R30
-; 0001 0057 
-; 0001 0058                 byCheckKeyCnt = PRESS_CNT;
+; 0001 004D 
+; 0001 004E                 byCheckKeyCnt = PRESS_CNT;
 	RCALL SUBOPT_0xA
-; 0001 0059 
-; 0001 005A                 byScanState = ST_CHECK_KEY;
+; 0001 004F 
+; 0001 0050                 byScanState = ST_CHECK_KEY;
 	LDI  R30,LOW(1)
 	STS  _byScanState,R30
-; 0001 005B             }
-; 0001 005C             break;
+; 0001 0051             }
+; 0001 0052             break;
 _0x20008:
 	RJMP _0x20006
-; 0001 005D 
-; 0001 005E         case ST_CHECK_KEY:
+; 0001 0053 
+; 0001 0054         case ST_CHECK_KEY:
 _0x20007:
 	CPI  R30,LOW(0x1)
 	BRNE _0x20009
-; 0001 005F             // Если клавиша удердивалась достаточно долго, то
-; 0001 0060             // генерируем событие с кодом клавиши, и переходим к
-; 0001 0061             // ожиданию отпускания клавиши
-; 0001 0062             if (byCheckedKey == KeyCode)
+; 0001 0055             // Если клавиша удердивалась достаточно долго, то
+; 0001 0056             // генерируем событие с кодом клавиши, и переходим к
+; 0001 0057             // ожиданию отпускания клавиши
+; 0001 0058             if (byCheckedKey == KeyCode)
 	RCALL SUBOPT_0x9
 	LDS  R26,_byCheckedKey
 	CP   R30,R26
 	BRNE _0x2000A
-; 0001 0063             {
-; 0001 0064                 byCheckKeyCnt--;
+; 0001 0059             {
+; 0001 005A                 byCheckKeyCnt--;
 	RCALL SUBOPT_0xB
 	RCALL SUBOPT_0xC
-; 0001 0065                 if (!byCheckKeyCnt)
+; 0001 005B                 if (!byCheckKeyCnt)
 	BRNE _0x2000B
-; 0001 0066                 {
-; 0001 0067                     btKeyUpdate = TRUE;
+; 0001 005C                 {
+; 0001 005D                     btKeyUpdate = TRUE;
 	SET
 	BLD  R2,0
-; 0001 0068                     byKeyCode = byCheckedKey;
+; 0001 005E                     byKeyCode = byCheckedKey;
 	LDS  R30,_byCheckedKey
 	STS  _byKeyCode,R30
-; 0001 0069                     byScanState = ST_RELEASE_WAIT;
+; 0001 005F                     byScanState = ST_RELEASE_WAIT;
 	LDI  R30,LOW(2)
 	STS  _byScanState,R30
-; 0001 006A                     byCheckKeyCnt = RELEASE_CNT;
+; 0001 0060                     byCheckKeyCnt = RELEASE_CNT;
 	RCALL SUBOPT_0xA
-; 0001 006B                     byIterationCounter = PRESS_CNT * 20;
+; 0001 0061                     byIterationCounter = PRESS_CNT * 20;
 	LDI  R30,LOW(80)
 	STS  _byIterationCounter,R30
-; 0001 006C                 }
-; 0001 006D             }
+; 0001 0062                 }
+; 0001 0063             }
 _0x2000B:
-; 0001 006E             // Если данные неустойчитывы, то возвращается назад,
-; 0001 006F             // к ожиданию нажатия клавиши
-; 0001 0070             else
+; 0001 0064             // Если данные неустойчитывы, то возвращается назад,
+; 0001 0065             // к ожиданию нажатия клавиши
+; 0001 0066             else
 	RJMP _0x2000C
 _0x2000A:
-; 0001 0071                 byScanState = ST_WAIT_KEY;
+; 0001 0067                 byScanState = ST_WAIT_KEY;
 	RCALL SUBOPT_0x8
-; 0001 0072             break;
+; 0001 0068             break;
 _0x2000C:
 	RJMP _0x20006
-; 0001 0073 
-; 0001 0074         case ST_RELEASE_WAIT:
+; 0001 0069 
+; 0001 006A         case ST_RELEASE_WAIT:
 _0x20009:
 	CPI  R30,LOW(0x2)
 	BRNE _0x20006
-; 0001 0075             // Пока клавиша не будет отпущена на достаточный интервал
-; 0001 0076             // времени, будем оставаться в этом состоянии
-; 0001 0077             if (KeyCode != 0)
+; 0001 006B             // Пока клавиша не будет отпущена на достаточный интервал
+; 0001 006C             // времени, будем оставаться в этом состоянии
+; 0001 006D             if (KeyCode != 0)
 	RCALL SUBOPT_0x9
 	BREQ _0x2000E
-; 0001 0078             {
-; 0001 0079                 byCheckKeyCnt = RELEASE_CNT;
+; 0001 006E             {
+; 0001 006F                 byCheckKeyCnt = RELEASE_CNT;
 	RCALL SUBOPT_0xA
-; 0001 007A                 if (!byIterationCounter)
+; 0001 0070                 if (!byIterationCounter)
 	LDS  R30,_byIterationCounter
 	CPI  R30,0
 	BRNE _0x2000F
-; 0001 007B                 {
-; 0001 007C                   byIterationCounter = PRESS_CNT * 2;
+; 0001 0071                 {
+; 0001 0072                   byIterationCounter = PRESS_CNT * 2;
 	LDI  R30,LOW(8)
 	STS  _byIterationCounter,R30
-; 0001 007D                   btKeyUpdate = TRUE;
+; 0001 0073                   btKeyUpdate = TRUE;
 	SET
 	BLD  R2,0
-; 0001 007E                 }
-; 0001 007F                 byIterationCounter--;
+; 0001 0074                 }
+; 0001 0075                 byIterationCounter--;
 _0x2000F:
 	LDS  R30,_byIterationCounter
 	SUBI R30,LOW(1)
 	RJMP _0x20029
-; 0001 0080             }
-; 0001 0081             else
+; 0001 0076             }
+; 0001 0077             else
 _0x2000E:
-; 0001 0082             {
-; 0001 0083                 byCheckKeyCnt--;
+; 0001 0078             {
+; 0001 0079                 byCheckKeyCnt--;
 	RCALL SUBOPT_0xB
 	RCALL SUBOPT_0xC
-; 0001 0084                 if (!byCheckKeyCnt)
+; 0001 007A                 if (!byCheckKeyCnt)
 	BRNE _0x20011
-; 0001 0085                 {
-; 0001 0086                     byScanState = ST_WAIT_KEY;
+; 0001 007B                 {
+; 0001 007C                     byScanState = ST_WAIT_KEY;
 	RCALL SUBOPT_0x8
-; 0001 0087                     byIterationCounter = PRESS_CNT * 20;
+; 0001 007D                     byIterationCounter = PRESS_CNT * 20;
 	LDI  R30,LOW(80)
 _0x20029:
 	STS  _byIterationCounter,R30
-; 0001 0088                 }
-; 0001 0089             }
+; 0001 007E                 }
+; 0001 007F             }
 _0x20011:
-; 0001 008A             break;
-; 0001 008B     }
+; 0001 0080             break;
+; 0001 0081     }
 _0x20006:
-; 0001 008C     if( btKeyUpdate )
+; 0001 0082     if( btKeyUpdate )
 	SBRS R2,0
 	RJMP _0x20012
-; 0001 008D     {
-; 0001 008E       btKeyUpdate = FALSE;
+; 0001 0083     {
+; 0001 0084       btKeyUpdate = FALSE;
 	CLT
 	BLD  R2,0
-; 0001 008F       ProcessKey();
+; 0001 0085       ProcessKey();
 	RCALL _ProcessKey
-; 0001 0090     }
-; 0001 0091 }
+; 0001 0086     }
+; 0001 0087 }
 _0x20012:
 	RET
 ; .FEND
@@ -2895,91 +2847,91 @@ _0x20012:
 ;      Выход: -
 ;\**************************************************************************/
 ;void ProcessKey(void)
-; 0001 0099 {
+; 0001 008F {
 _ProcessKey:
 ; .FSTART _ProcessKey
-; 0001 009A     switch (byKeyCode)
+; 0001 0090     switch (byKeyCode)
 	LDS  R30,_byKeyCode
-; 0001 009B     {
-; 0001 009C         case KEY_1:                 // Была нажата клавиша Минус
+; 0001 0091     {
+; 0001 0092         case KEY_1:                 // Была нажата клавиша Минус
 	CPI  R30,LOW(0x1)
 	BRNE _0x20016
-; 0001 009D             switch (View)
+; 0001 0093             switch (View)
 	MOV  R30,R4
-; 0001 009E             {
-; 0001 009F //               case 0:               //если был режим "Текущая температура", то
-; 0001 00A0 //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
-; 0001 00A1 //                 Counter = 5;        //и взводим счётчик на 5 секунд.
-; 0001 00A2 //               break;
-; 0001 00A3               case SHOW_TLoadOn:               //если мы в режиме "Установленная температура", то
+; 0001 0094             {
+; 0001 0095 //               case 0:               //если был режим "Текущая температура", то
+; 0001 0096 //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
+; 0001 0097 //                 Counter = 5;        //и взводим счётчик на 5 секунд.
+; 0001 0098 //               break;
+; 0001 0099               case SHOW_TLoadOn:               //если мы в режиме "Установленная температура", то
 	CPI  R30,LOW(0x1)
 	BRNE _0x2001A
-; 0001 00A4                 if (T_LoadOn > TLoadOn_Min) //если "Установленная температура" > Min, то
+; 0001 009A                 if (T_LoadOn > TLoadOn_Min) //если "Установленная температура" > Min, то
 	LDI  R30,LOW(64986)
 	LDI  R31,HIGH(64986)
 	CP   R30,R8
 	CPC  R31,R9
 	BRGE _0x2001B
-; 0001 00A5                 {
-; 0001 00A6                   T_LoadOn --;      //уменьшаем значение на 0,1°
+; 0001 009B                 {
+; 0001 009C                   T_LoadOn --;      //уменьшаем значение на 0,1°
 	MOVW R30,R8
 	SBIW R30,1
 	MOVW R8,R30
-; 0001 00A7 //                  RefreshDisplay(); //обновляем данные на экране
-; 0001 00A8                 }
-; 0001 00A9 //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
-; 0001 00AA //                Counter = 5;        //и взводим счётчик на 5 секунд.
-; 0001 00AB               break;
+; 0001 009D //                  RefreshDisplay(); //обновляем данные на экране
+; 0001 009E                 }
+; 0001 009F //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
+; 0001 00A0 //                Counter = 5;        //и взводим счётчик на 5 секунд.
+; 0001 00A1               break;
 _0x2001B:
 	RJMP _0x20019
-; 0001 00AC               case 2:               //если мы в режиме "Дэльта", то
+; 0001 00A2               case 2:               //если мы в режиме "Дэльта", то
 _0x2001A:
 	CPI  R30,LOW(0x2)
 	BRNE _0x20019
-; 0001 00AD                 if (DeltaT > DeltaT_Min)     //если "Дэльта" больше Min, то
+; 0001 00A3                 if (DeltaT > DeltaT_Min)     //если "Дэльта" больше Min, то
 	LDI  R30,LOW(1)
 	LDI  R31,HIGH(1)
 	CP   R30,R10
 	CPC  R31,R11
 	BRGE _0x2001D
-; 0001 00AE                 {
-; 0001 00AF                   DeltaT --;        //уменьшаем Дэльту на 0,1°
+; 0001 00A4                 {
+; 0001 00A5                   DeltaT --;        //уменьшаем Дэльту на 0,1°
 	MOVW R30,R10
 	SBIW R30,1
 	MOVW R10,R30
-; 0001 00B0 //                  RefreshDisplay(); //обновляем данные на экране
-; 0001 00B1                 }
-; 0001 00B2 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-; 0001 00B3               break;
+; 0001 00A6 //                  RefreshDisplay(); //обновляем данные на экране
+; 0001 00A7                 }
+; 0001 00A8 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00A9               break;
 _0x2001D:
-; 0001 00B4               #ifdef CorCode
-; 0001 00B5               case 3:                   //если мы в режиме "Коррекции", то
-; 0001 00B6                 if (CorT > CorT_Min)
-; 0001 00B7                 {
-; 0001 00B8                     CorT--;         //уменьшаем значение на 0,1°
-; 0001 00B9                 }
-; 0001 00BA                 break;
-; 0001 00BB               #endif
-; 0001 00BC             }
+; 0001 00AA               #ifdef CorCode
+; 0001 00AB               case 3:                   //если мы в режиме "Коррекции", то
+; 0001 00AC                 if (CorT > CorT_Min)
+; 0001 00AD                 {
+; 0001 00AE                     CorT--;         //уменьшаем значение на 0,1°
+; 0001 00AF                 }
+; 0001 00B0                 break;
+; 0001 00B1               #endif
+; 0001 00B2             }
 _0x20019:
-; 0001 00BD         break;
+; 0001 00B3         break;
 	RJMP _0x20015
-; 0001 00BE 
-; 0001 00BF         case KEY_2:                 // Была нажата клавиша Плюс
+; 0001 00B4 
+; 0001 00B5         case KEY_2:                 // Была нажата клавиша Плюс
 _0x20016:
 	CPI  R30,LOW(0x2)
 	BRNE _0x2001E
-; 0001 00C0             switch (View)
+; 0001 00B6             switch (View)
 	MOV  R30,R4
-; 0001 00C1             {
-; 0001 00C2 //               case 0:               //если был режим "Текущая температура", то
-; 0001 00C3 //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
-; 0001 00C4 //                 Counter = 5;        //и взводим счётчик на 5 секунд.
-; 0001 00C5 //               break;
-; 0001 00C6               case 1:               //если мы в режиме "Установленная температура", то
+; 0001 00B7             {
+; 0001 00B8 //               case 0:               //если был режим "Текущая температура", то
+; 0001 00B9 //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
+; 0001 00BA //                 Counter = 5;        //и взводим счётчик на 5 секунд.
+; 0001 00BB //               break;
+; 0001 00BC               case 1:               //если мы в режиме "Установленная температура", то
 	CPI  R30,LOW(0x1)
 	BRNE _0x20022
-; 0001 00C7                 if (T_LoadOn < (TLoadOn_Max - DeltaT))    //если температура ниже Max - Дельта
+; 0001 00BD                 if (T_LoadOn < (TLoadOn_Max - DeltaT))    //если температура ниже Max - Дельта
 	LDI  R30,LOW(1250)
 	LDI  R31,HIGH(1250)
 	SUB  R30,R10
@@ -2987,107 +2939,107 @@ _0x20016:
 	CP   R8,R30
 	CPC  R9,R31
 	BRGE _0x20023
-; 0001 00C8                 {
-; 0001 00C9                   T_LoadOn ++;      //то увеличиваем Установленную температуру на 0,1°
+; 0001 00BE                 {
+; 0001 00BF                   T_LoadOn ++;      //то увеличиваем Установленную температуру на 0,1°
 	MOVW R30,R8
 	ADIW R30,1
 	MOVW R8,R30
 	SBIW R30,1
-; 0001 00CA //                  RefreshDisplay(); //обновляем данные на экране
-; 0001 00CB                 }
-; 0001 00CC //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
-; 0001 00CD //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-; 0001 00CE               break;
+; 0001 00C0 //                  RefreshDisplay(); //обновляем данные на экране
+; 0001 00C1                 }
+; 0001 00C2 //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
+; 0001 00C3 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00C4               break;
 _0x20023:
 	RJMP _0x20021
-; 0001 00CF               case 2:
+; 0001 00C5               case 2:
 _0x20022:
 	CPI  R30,LOW(0x2)
 	BRNE _0x20021
-; 0001 00D0                 if (DeltaT < DeltaT_Max)   //если Дельта меньше Max, то
+; 0001 00C6                 if (DeltaT < DeltaT_Max)   //если Дельта меньше Max, то
 	LDI  R30,LOW(250)
 	LDI  R31,HIGH(250)
 	CP   R10,R30
 	CPC  R11,R31
 	BRGE _0x20025
-; 0001 00D1                 {
-; 0001 00D2                   DeltaT ++;        //то увеличиваем Дэльту на 0,1°
+; 0001 00C7                 {
+; 0001 00C8                   DeltaT ++;        //то увеличиваем Дэльту на 0,1°
 	MOVW R30,R10
 	ADIW R30,1
 	MOVW R10,R30
-; 0001 00D3 //                  RefreshDisplay(); //обновляем данные на экране
-; 0001 00D4                 }
-; 0001 00D5 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-; 0001 00D6               break;
+; 0001 00C9 //                  RefreshDisplay(); //обновляем данные на экране
+; 0001 00CA                 }
+; 0001 00CB //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00CC               break;
 _0x20025:
-; 0001 00D7               #ifdef CorCode
-; 0001 00D8               case 3:                   //если мы в режиме "Коррекции", то
-; 0001 00D9                 if (CorT < CorT_Max)
-; 0001 00DA                 {
-; 0001 00DB                     CorT++;
-; 0001 00DC                 }
-; 0001 00DD               break;
-; 0001 00DE               #endif
-; 0001 00DF             }
+; 0001 00CD               #ifdef CorCode
+; 0001 00CE               case 3:                   //если мы в режиме "Коррекции", то
+; 0001 00CF                 if (CorT < CorT_Max)
+; 0001 00D0                 {
+; 0001 00D1                     CorT++;
+; 0001 00D2                 }
+; 0001 00D3               break;
+; 0001 00D4               #endif
+; 0001 00D5             }
 _0x20021:
-; 0001 00E0         break;
+; 0001 00D6         break;
 	RJMP _0x20015
-; 0001 00E1 
-; 0001 00E2         case KEY_3:               // Была нажаты обе кноки вместе.
+; 0001 00D7 
+; 0001 00D8         case KEY_3:               // Была нажаты обе кноки вместе.
 _0x2001E:
 	CPI  R30,LOW(0x3)
 	BRNE _0x20028
-; 0001 00E3           View++;
+; 0001 00D9           View++;
 	INC  R4
-; 0001 00E4           if (View > View_Max)
+; 0001 00DA           if (View > View_Max)
 	LDI  R30,LOW(3)
 	CP   R30,R4
 	BRSH _0x20027
-; 0001 00E5           {
-; 0001 00E6             View = SHOW_TLoadOn;
+; 0001 00DB           {
+; 0001 00DC             View = SHOW_TLoadOn;
 	LDI  R30,LOW(1)
 	MOV  R4,R30
-; 0001 00E7           }
-; 0001 00E8 //             switch (View)
-; 0001 00E9 //             {
-; 0001 00EA //               case 0:               //если был режим "Текущая температура", то
-; 0001 00EB //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
-; 0001 00EC //               break;
-; 0001 00ED //               case 1:               //если мы в режиме "Установленная температура", то
-; 0001 00EE //                 View = SHOW_DeltaT;           //удерживаем в режиме "Дэльта"
-; 0001 00EF //               break;
-; 0001 00F0 //               case 2:
-; 0001 00F1 //                 View = SHOW_Error;           //переходим в режим "Последняя обнаруженная ошибка"
-; 0001 00F2 //               break;
-; 0001 00F3 //               case 3:
-; 0001 00F4 //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
-; 0001 00F5 //               break;
-; 0001 00F6 //             }
-; 0001 00F7 //             Counter = 5;        //и взводим счётчик на 5 секунд.
-; 0001 00F8 //             Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-; 0001 00F9 //             Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-; 0001 00FA //            Counter = 5;        //и взводим счётчик ещё на 5 секунд.
-; 0001 00FB         break;
+; 0001 00DD           }
+; 0001 00DE //             switch (View)
+; 0001 00DF //             {
+; 0001 00E0 //               case 0:               //если был режим "Текущая температура", то
+; 0001 00E1 //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
+; 0001 00E2 //               break;
+; 0001 00E3 //               case 1:               //если мы в режиме "Установленная температура", то
+; 0001 00E4 //                 View = SHOW_DeltaT;           //удерживаем в режиме "Дэльта"
+; 0001 00E5 //               break;
+; 0001 00E6 //               case 2:
+; 0001 00E7 //                 View = SHOW_Error;           //переходим в режим "Последняя обнаруженная ошибка"
+; 0001 00E8 //               break;
+; 0001 00E9 //               case 3:
+; 0001 00EA //                 View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
+; 0001 00EB //               break;
+; 0001 00EC //             }
+; 0001 00ED //             Counter = 5;        //и взводим счётчик на 5 секунд.
+; 0001 00EE //             Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00EF //             Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00F0 //            Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00F1         break;
 _0x20027:
-; 0001 00FC 
-; 0001 00FD         default:
+; 0001 00F2 
+; 0001 00F3         default:
 _0x20028:
-; 0001 00FE         break;
-; 0001 00FF 
-; 0001 0100     }
+; 0001 00F4         break;
+; 0001 00F5 
+; 0001 00F6     }
 _0x20015:
-; 0001 0101     Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+; 0001 00F7     Counter = 5;        //и взводим счётчик ещё на 5 секунд.
 	LDI  R30,LOW(5)
 	MOV  R5,R30
-; 0001 0102     #ifdef Blinking
-; 0001 0103     GoBlinking = 0;
+; 0001 00F8     #ifdef Blinking
+; 0001 00F9     GoBlinking = 0;
 	CLT
 	BLD  R3,0
-; 0001 0104     #endif
-; 0001 0105     RefreshDisplay(); //обновляем данные на экране
+; 0001 00FA     #endif
+; 0001 00FB     RefreshDisplay(); //обновляем данные на экране
 	RCALL _RefreshDisplay
-; 0001 0106 
-; 0001 0107 }
+; 0001 00FC 
+; 0001 00FD }
 	RET
 ; .FEND
 

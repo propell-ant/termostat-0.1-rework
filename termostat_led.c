@@ -24,25 +24,6 @@ Clock frequency     : 8,000000 MHz
 // 1 Wire Bus interface functions
 #include <1wire.h>
                                                                                       
-#ifdef ORIG_PORT_MAP
-#define ONE_WIRE_PORTNAME PORTD
-#define ONE_WIRE_PORTNUM 6
-// 1 Wire Bus functions
-#asm
-   .equ __w1_port=0x12 ;PORTD
-   .equ __w1_bit=6
-#endasm
-#endif
-#ifdef DIP_COMPACT_PORT_MAP
-#define ONE_WIRE_PORTNAME PORTC
-#define ONE_WIRE_PORTNUM 0
-// 1 Wire Bus functions
-#asm
-   .equ __w1_port=0x15 ;PORTC
-   .equ __w1_bit=0
-#endasm
-#endif
-#ifdef TQFP_PORT_MAP
 #define ONE_WIRE_PORTNAME PORTC
 #define ONE_WIRE_PORTNUM 4
 // 1 Wire Bus functions
@@ -50,7 +31,6 @@ Clock frequency     : 8,000000 MHz
    .equ __w1_port=0x15 ;PORTC
    .equ __w1_bit=4
 #endasm
-#endif
 
 
 #include <1wire.h>

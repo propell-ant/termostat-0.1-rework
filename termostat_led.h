@@ -36,7 +36,7 @@
 // Опция ненастраиваемой поправки (не забываем про формат записи значений, см. ниже), скобки не убираем
 //#define CorT_Static (0)
 
-#define PREVENT_SENSOR_SELF_HEATING
+//#define PREVENT_SENSOR_SELF_HEATING
 
 #ifndef PREVENT_SENSOR_SELF_HEATING
 #define T1_PRESCALER 0x04
