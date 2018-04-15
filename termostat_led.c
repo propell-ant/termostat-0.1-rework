@@ -19,8 +19,10 @@ Clock frequency     : 8,000000 MHz
 
 #include <mega8.h>
 #include <kbd.h>
-#include <termostat_led.h> // поддержка нескольких вариантов печатной платы
+#include "termostat_led.h" // поддержка нескольких вариантов печатной платы
 #include <ds1820.h>
+// 1 Wire Bus interface functions
+#include <1wire.h>
                                                                                       
 #ifdef ORIG_PORT_MAP
 #define ONE_WIRE_PORTNAME PORTD
@@ -697,13 +699,7 @@ OUTPIN_NO = 0;
 // Mode: Normal top=FFh
 // OC0A output: Disconnected
 // OC0B output: Disconnected
-#ifdef ORIG_PORT_MAP  
-TCCR0A=0x00;
-TCCR0B=0x05;
-#endif
-#ifdef TQFP_PORT_MAP  
 TCCR0=0x05;
-#endif
 TCNT0=0x00;
 // OCR0A=0x00;
 // OCR0B=0x00;
@@ -721,12 +717,7 @@ TCNT0=0x00;
 // Compare A Match Interrupt: Off
 // Compare B Match Interrupt: Off
 TCCR1A=0x00;
-#ifdef ORIG_PORT_MAP  
-TCCR1B=0x04;
-#endif
-#ifdef TQFP_PORT_MAP  
 TCCR1B=T1_PRESCALER;
-#endif
 TCNT1H=0xFF;
 TCNT1L=0xFE;
 // ICR1H=0x00;
@@ -736,7 +727,6 @@ TCNT1L=0xFE;
 // OCR1BH=0x00;
 // OCR1BL=0x00;
 
-#ifdef TQFP_PORT_MAP  
 // Timer/Counter 2 initialization
 // Clock source: System Clock
 // Clock value: Timer2 Stopped
@@ -746,7 +736,6 @@ ASSR=0x00;
 TCCR2=0x00;
 TCNT2=0x00;
 OCR2=0x00;
-#endif
 
 // External Interrupt(s) initialization
 // INT0: Off
@@ -755,32 +744,18 @@ OCR2=0x00;
 MCUCR=0x00;
 
 // Timer(s)/Counter(s) Interrupt(s) initialization
-#ifdef ORIG_PORT_MAP  
-TIMSK=0x82;
-#endif
-#ifdef TQFP_PORT_MAP  
 TIMSK=0x05;
-#endif
 
 // USART initialization
-// Mode: Disabled
-// USI Counter Overflow Interrupt: Off
-#ifdef ORIG_PORT_MAP  
-USICR=0x00;
-#endif
-#ifdef TQFP_PORT_MAP  
+// USART disabled
 UCSRB=0x00;
-#endif
 
 // Analog Comparator initialization
 // Analog Comparator: Off
 // Analog Comparator Input Capture by Timer/Counter 1: Off
 ACSR=0x80;
-#ifdef TQFP_PORT_MAP  
 SFIOR=0x00;
-#endif
 
-#ifdef TQFP_PORT_MAP  
 // ADC initialization
 // ADC disabled
 ADCSRA=0x00;
@@ -792,7 +767,6 @@ SPCR=0x00;
 // TWI initialization
 // TWI disabled
 TWCR=0x00;
-#endif
 
 #ifdef Blinking
 DimmerCounter = 0;
