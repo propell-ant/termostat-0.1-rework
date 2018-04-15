@@ -46,7 +46,7 @@ Row3=119
 Collumn3=14
 Active3=0
 State3=0
-OF4=termostat_led_m8.c
+OF4=termostat_led.c
 Top4=-30
 Left4=-4
 Height4=411
@@ -82,7 +82,7 @@ PageIndex4=4
 EditorPanel5=0
 TimeStamp5=912617000
 PageIndex5=5
-F1=termostat_led_m8.c
+F1=termostat_led.c
 F2=kbd.c
 [Compiler]
 Chip=ATmega8
@@ -323,7 +323,7 @@ ScrollPosY=0
 TimeStamp=1183938984
 [BookmarksFoldedCode]
 Files=5
-F1=termostat_led_m8.c
+F1=termostat_led.c
 F2=kbd.c
 F3=c:\cvavr\inc\tiny2313.h
 F4=termostat_led.h
