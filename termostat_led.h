@@ -70,44 +70,7 @@
 #endif
 #endif
 
-//#define ORIG_PORT_MAP 
-//#define DIP_COMPACT_PORT_MAP  
-#define TQFP_PORT_MAP // при использовании TQFP корпуса
-
 //разряды индикатора
-#ifdef ORIG_PORT_MAP  
-#define DISPLAY_PORT PORTD
-#define DISPLAY_PINS PIND
-
-#define MINUS_PIN_MASK_BASE 0b00000001
-#define DOT_PIN_MASK_BASE 0b00000100
-#define UNDERSCORE_PIN_MASK_BASE 0b00001000
-
-#define DIGIT1 PORTD.5
-#define DIGIT2 PORTD.1
-#define DIGIT3 PORTD.0
-#define DIGIT4 PORTD.4
-
-#define OUTPIN_NO PORTD.2 // Нормально открытый выход
-//#define OUTPIN_NC PORTD.3 // Нормально закрытый выход
-#endif
-#ifdef DIP_COMPACT_PORT_MAP  
-#define DISPLAY_PORT PORTD
-#define DISPLAY_PINS PIND
-
-#define MINUS_PIN_MASK_BASE 0b00000001
-#define DOT_PIN_MASK_BASE 0b00000100
-#define UNDERSCORE_PIN_MASK_BASE 0b00001000
-
-#define DIGIT1 PORTD.5
-#define DIGIT2 PORTD.7
-#define DIGIT3 PORTD.6
-#define DIGIT4 PORTD.4
-
-#define OUTPIN_NO PORTC.1 // Нормально открытый выход
-//#define OUTPIN_NC PORTC.4 // Нормально закрытый выход (не используется)
-#endif
-#ifdef TQFP_PORT_MAP
 #define DISPLAY_PORT PORTD
 #define DISPLAY_PINS PIND
 
@@ -122,54 +85,8 @@
 
 #define OUTPIN_NO PORTB.3 // Нормально открытый выход
 //#define OUTPIN_NC PORTB.4 // Нормально закрытый выход (не используется)
-#endif
 
 //таблица символов
-#ifdef ORIG_PORT_MAP 
-#define SYMBOLS_LEN 15
-#define SymbolsArray {\
-0b11111010,/*0xFA,   //0 */ \
-0b10000010,/*0x82,   //1 */ \
-0b10111001,/*0xB9,   //2 */ \
-0b10101011,/*0xAB,	 //3 */ \
-0b11000011,/*0xC3,   //4 */ \
-0b01101011,/*0x6B,   //5 */ \
-0b01111011,/*0x7B,   //6 */ \
-0b10100010,/*0xA2,   //7 */ \
-0b11111011,/*0xFB,   //8 */ \
-0b11101011,/*0xEB,   //9 */ \
-0b00000000,/*0x00,   //blank */ \
-0b00000001,/*0x01,   //- */ \
-/*0b01110000,//0x70,   //t */ \
-0b10011011,/*0x9B,   //d */ \
-/*0b01011000,//0x58,   //L */ \
-0b01111000, /*0x78   //C  */ \
-0b01111001 /*0x79    //E  */ \
-}
-#endif
-#ifdef DIP_COMPACT_PORT_MAP 
-#define SYMBOLS_LEN 15
-#define SymbolsArray {\
-0xFA,/*0*/\
-0x22,/*1*/\
-0xB9,/*2*/\
-0xAB,/*3*/\ 
-0x63,/*4*/\ 
-0xCB,/*5*/\ 
-0xDB,/*6*/\
-0xA2,/*7*/\ 
-0xFB,/*8*/\
-0xEB,/*9*/\ 
-0x00,/*blank*/\   
-0x01,/*-*/\
-/*0xD0,//t*/\
-0x3B,/*d*/\
-/*0x58,//L*/\
-0xD0,/*C ??*/\
-0x3B/*E ??*/\
-}; 
-#endif
-#ifdef TQFP_PORT_MAP
 #define SYMBOLS_LEN 15
 #define SymbolsArray {\
 0xFA,/*0*/\
@@ -192,7 +109,6 @@
 /*0xB3,//H*/\
 /*0x30,//I*/\
 }; 
-#endif
                 
 //температура представлена так:
 //-55°C = -550
