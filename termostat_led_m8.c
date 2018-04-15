@@ -13,22 +13,44 @@ Company : Hardlock
 Comments: 
 
 
-Chip type           : ATtiny2313
+Chip type           : AMega8
 Clock frequency     : 8,000000 MHz
-Memory model        : Tiny
-External SRAM size  : 0
-Data Stack size     : 40
 *****************************************************/
 
-#include <tiny2313.h>
+#include <mega8.h>
 #include <kbd.h>
-#include "termostat_led.h"
-
+#include <termostat_led.h> // поддержка нескольких вариантов печатной платы
+#include <ds1820.h>
+                                                                                      
+#ifdef ORIG_PORT_MAP
+#define ONE_WIRE_PORTNAME PORTD
+#define ONE_WIRE_PORTNUM 6
 // 1 Wire Bus functions
 #asm
    .equ __w1_port=0x12 ;PORTD
    .equ __w1_bit=6
 #endasm
+#endif
+#ifdef DIP_COMPACT_PORT_MAP
+#define ONE_WIRE_PORTNAME PORTC
+#define ONE_WIRE_PORTNUM 0
+// 1 Wire Bus functions
+#asm
+   .equ __w1_port=0x15 ;PORTC
+   .equ __w1_bit=0
+#endasm
+#endif
+#ifdef TQFP_PORT_MAP
+#define ONE_WIRE_PORTNAME PORTC
+#define ONE_WIRE_PORTNUM 4
+// 1 Wire Bus functions
+#asm
+   .equ __w1_port=0x15 ;PORTC
+   .equ __w1_bit=4
+#endasm
+#endif
+
+
 #include <1wire.h>
 #include <delay.h>
 
@@ -122,6 +144,17 @@ bit DigitsActive = 0;
   #ifdef Anode 
     #define DigitsActive 1
   #endif
+#endif
+
+#ifdef Anode
+#define MINUS_PIN_MASK (~MINUS_PIN_MASK_BASE)
+#define DOT_PIN_MASK (~DOT_PIN_MASK_BASE)
+#define UNDERSCORE_PIN_MASK (~UNDERSCORE_PIN_MASK_BASE)
+#endif
+#ifdef Cathode
+#define MINUS_PIN_MASK (MINUS_PIN_MASK_BASE)
+#define DOT_PIN_MASK (DOT_PIN_MASK_BASE)
+#define UNDERSCORE_PIN_MASK (UNDERSCORE_PIN_MASK_BASE)
 #endif
 
 //Это две переменные для "занимания места"
@@ -306,7 +339,7 @@ void ShowDisplayData11Times(void)
   }              
   #endif        
  
-  PORTB = byCharacter[byDisplay[0]];
+  DISPLAY_PORT = byCharacter[byDisplay[0]];
 //   if (Minus)
 //   {
 //     PORTB = PINB | 0b00000001;
@@ -314,35 +347,35 @@ void ShowDisplayData11Times(void)
   #ifdef heat
   if (LoadOn)
   {
-    PORTB = PINB | 0b00000100;
+    DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
   }
   #endif
  
   #ifdef cold
   if (!LoadOn)
   {
-    PORTB = PINB | 0b00000100;
+    DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
   }
   #endif          
   if (View == SHOW_TLoadOn)
   {
-    PORTB = PINB | 0b00001000;
+    DISPLAY_PORT = DISPLAY_PINS | UNDERSCORE_PIN_MASK;
   }
   DIGIT1 = DigitsActive;
   delay_us(LED_delay);
   DIGIT1 = 1;    
      
-  PORTB = byCharacter[byDisplay[1]];
+  DISPLAY_PORT = byCharacter[byDisplay[1]];
   DIGIT2 = DigitsActive;
   delay_us(LED_delay);
   DIGIT2 = 1;
       
-  PORTB = byCharacter[byDisplay[2]] | 0b00000100;
+  DISPLAY_PORT = byCharacter[byDisplay[2]] | DOT_PIN_MASK;
   DIGIT3 = DigitsActive;
   delay_us(LED_delay);
   DIGIT3 = 1;
       
-  PORTB = byCharacter[byDisplay[3]];
+  DISPLAY_PORT = byCharacter[byDisplay[3]];
   DIGIT4 = DigitsActive;
   delay_us(LED_delay);
   DIGIT4 = 1;
@@ -364,7 +397,7 @@ void ShowDisplayData11Times(void)
     DigitsActive = 0;
   }                      
   #endif        
-  PORTB = ~byCharacter[byDisplay[0]];  
+  DISPLAY_PORT = ~byCharacter[byDisplay[0]];  
 //   if (Minus)
 //   {
 //     PORTB = PINB & 0b11111110;
@@ -372,35 +405,35 @@ void ShowDisplayData11Times(void)
   #ifdef heat
   if (LoadOn)
   {
-    PORTB = PINB & 0b11111011;
+    DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
   }           
   #endif
   
   #ifdef cold
   if (!LoadOn)
   {
-    PORTB = PINB & 0b11111011;
+    DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
   }           
   #endif
   if (View == SHOW_TLoadOn)
   {
-    PORTB = PINB & 0b11110111;
+    DISPLAY_PORT = DISPLAY_PINS & UNDERSCORE_PIN_MASK;
   } 
   DIGIT1 = DigitsActive;
   delay_us(LED_delay);
   DIGIT1 = 0;    
      
-  PORTB = ~byCharacter[byDisplay[1]];
+  DISPLAY_PORT = ~byCharacter[byDisplay[1]];
   DIGIT2 = DigitsActive;
   delay_us(LED_delay);
   DIGIT2 = 0;
       
-  PORTB = ~byCharacter[byDisplay[2]] & 0b11111011;
+  DISPLAY_PORT = ~byCharacter[byDisplay[2]] & DOT_PIN_MASK;
   DIGIT3 = DigitsActive;
   delay_us(LED_delay);
   DIGIT3 = 0;
       
-  PORTB = ~byCharacter[byDisplay[3]];
+  DISPLAY_PORT = ~byCharacter[byDisplay[3]];
   DIGIT4 = DigitsActive;
   delay_us(LED_delay);
   DIGIT4 = 0;
@@ -416,7 +449,18 @@ interrupt [TIM1_OVF] void timer1_ovf_isr(void)
   int Temp;
   int *val;
 // Reinitialize Timer 1 value
-TCNT1=0x85EE;
+#ifdef PREVENT_SENSOR_SELF_HEATING
+if (Updating)           //если в этот раз читаем температуру, то 
+{
+TCNT1=T1_OFFSET_LONG;
+}
+else
+{
+TCNT1=T1_OFFSET;
+}
+#else
+TCNT1=T1_OFFSET;
+#endif
 //TCNT1L=0xD1;
 #ifdef EliminateFlicker
 skipDelay = 1;
@@ -529,8 +573,10 @@ else
 #ifdef ShowDataErrors
 if (ErrorCounter == 0)
 {
-  PORTD.3 = 0;
-  PORTD.2 = 0;
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 0;
+  #endif
+  OUTPIN_NO = 0;
   NeedResetLoad = 1;
   LoadOn = ShowDotWhenError;              
 }
@@ -542,8 +588,10 @@ Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
 
 if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 {                              //то выключаем нагрузку
-  PORTD.2 = 0;              
-  PORTD.3 = 1;
+  OUTPIN_NO = 0;              
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 1;
+  #endif
   LoadOn = 0;
   NeedResetLoad = 0;              
 }             
@@ -552,8 +600,10 @@ Temp = T_LoadOn;                //Temp - временная переменная.
 
 if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
 {                               //то включаем нагрузку
-  PORTD.3 = 0;
-  PORTD.2 = 1;
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 0;
+  #endif
+  OUTPIN_NO = 1;
   LoadOn = 1;  
   NeedResetLoad = 0;              
 } 
@@ -579,41 +629,67 @@ void main(void)
 {
 // Declare your local variables here
 
-// Crystal Oscillator division factor: 1
-#pragma optsize-
-CLKPR=0x80;
-CLKPR=0x00;
-#ifdef _OPTIMIZE_SIZE_
-#pragma optsize+
-#endif
-
-        //Разряд DDRx - определяет направление передачи данных (0 - вход, 1 - выход).
-        //Разряд PORTx - если вывод определен выходом (DDRx = 1), то:
-        //         если установлена 1 - то на выводе устанавливается лог. 1
-        //         если установлена 0 - то на выводе устанавливается лог. 0
-        //    если вывод определен входом (DDRx = 0), то PORTx - определяет состояние подтягивающего резистора (при PORTx = 1 резистор подключен)
-        //Разряд PINx - доступен только для чтения и содержит физическое значение вывода порта
-        
-        PORTA=0b00000011;
-        DDRA= 0b00000000;
+#ifdef ORIG_PORT_MAP  
+        PORTC=0b00000011;
+        DDRC= 0b00000000; // весь порт работает на вход (клавиши управления)
         
         PORTB=0b00000000;
-        DDRB= 0b11111111;
+        DDRB= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
         
          
         #ifdef Cathode  
-          PORTD=0b01110011;
-          DDRD= 0b00111111;
+          PORTD=0b01110111; // все разряды индикатора (PORTD.4,.0,.1,.5) поднять, 1wire - поднять, нагрузку - включить (PORTD.2 = 1, PORTD.3 = 0)
+          DDRD= 0b00111111; // все регистры кроме 6 (1wire) и 7 работают на выход
         #endif
         
         #ifdef Anode  
-          PORTD=0b01000000;
+          PORTD=0b01000100; // все разряды индикатора (PORTD.4,.0,.1,.5) опустить, 1wire - поднять, нагрузку - включить (PORTD.2 = 1, PORTD.3 = 0)
           DDRD= 0b00111111;
         #endif
+#endif
+#ifdef DIP_COMPACT_PORT_MAP  
+        PORTC=0b00001100; // нагрузку-выключить
+        DDRC= 0b00000010; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
 
-//выше уже проинициализировали
-//PORTD.3 = 0;
-//PORTD.2 = 0;
+        PORTB=0b00000000;
+        DDRB= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
+ 
+        #ifdef Cathode  
+          PORTD=0b11110000; // разряды индикатора (PORTD.7,.6,.5,.4) поднять, клавиши (PORTD.2 и .3) - поднять
+          DDRD= 0b11110000; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+          //PORTA=0b00000011; // разряд индикатора 4 (PORTA.0) поднять, 1wire (PORTA.1) - поднять
+        #endif       
+        #ifdef Anode  
+          PORTD=0b00000000; // разряды индикатора (PORTD.7,.6,.5,.4) опустить, клавиши (PORTD.2 и .3) - поднять
+          DDRD= 0b11110000; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+          //PORTA=0b00000010; // разряд индикатора 4 (PORTA.0) опустить, 1wire (PORTA.1) - поднять
+        #endif
+        //DDRA= 0b00000001; // PORTA.0 используется для управления индикатором, PORTA.1 - для 1wire
+#endif
+#ifdef TQFP_PORT_MAP  
+        PORTB=0b00110000; // нагрузку-выключить
+        DDRB= 0b00111000; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
+
+        PORTD=0b00000000;
+        DDRD= 0b11111111; // весь порт работает на выход, управляет сегментами индикатора
+ 
+        #ifdef Cathode  
+          PORTC=0b00001111; // разряды индикатора (PORTD.7,.6,.5,.4) поднять, клавиши (PORTD.2 и .3) - поднять
+          DDRC= 0b00001111; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+          //PORTA=0b00000011; // разряд индикатора 4 (PORTA.0) поднять, 1wire (PORTA.1) - поднять
+        #endif       
+        #ifdef Anode  
+          PORTC=0b00000000; // разряды индикатора (PORTD.7,.6,.5,.4) опустить, клавиши (PORTD.2 и .3) - поднять
+          DDRC= 0b00001111; // все регистры кроме 2 и 3 (две клавиши) работают на выход
+          //PORTA=0b00000010; // разряд индикатора 4 (PORTA.0) опустить, 1wire (PORTA.1) - поднять
+        #endif
+        //DDRA= 0b00000001; // PORTA.0 используется для управления индикатором, PORTA.1 - для 1wire
+#endif
+
+#ifdef OUTPIN_NC
+OUTPIN_NC = 1;
+#endif             
+OUTPIN_NO = 0; 
 
 // Timer/Counter 0 initialization
 // Clock source: System Clock
@@ -621,8 +697,13 @@ CLKPR=0x00;
 // Mode: Normal top=FFh
 // OC0A output: Disconnected
 // OC0B output: Disconnected
+#ifdef ORIG_PORT_MAP  
 TCCR0A=0x00;
 TCCR0B=0x05;
+#endif
+#ifdef TQFP_PORT_MAP  
+TCCR0=0x05;
+#endif
 TCNT0=0x00;
 // OCR0A=0x00;
 // OCR0B=0x00;
@@ -640,7 +721,12 @@ TCNT0=0x00;
 // Compare A Match Interrupt: Off
 // Compare B Match Interrupt: Off
 TCCR1A=0x00;
+#ifdef ORIG_PORT_MAP  
 TCCR1B=0x04;
+#endif
+#ifdef TQFP_PORT_MAP  
+TCCR1B=T1_PRESCALER;
+#endif
 TCNT1H=0xFF;
 TCNT1L=0xFE;
 // ICR1H=0x00;
@@ -650,26 +736,63 @@ TCNT1L=0xFE;
 // OCR1BH=0x00;
 // OCR1BL=0x00;
 
+#ifdef TQFP_PORT_MAP  
+// Timer/Counter 2 initialization
+// Clock source: System Clock
+// Clock value: Timer2 Stopped
+// Mode: Normal top=0xFF
+// OC2 output: Disconnected
+ASSR=0x00;
+TCCR2=0x00;
+TCNT2=0x00;
+OCR2=0x00;
+#endif
+
 // External Interrupt(s) initialization
 // INT0: Off
 // INT1: Off
 // Interrupt on any change on pins PCINT0-7: Off
-GIMSK=0x00;
 MCUCR=0x00;
 
 // Timer(s)/Counter(s) Interrupt(s) initialization
+#ifdef ORIG_PORT_MAP  
 TIMSK=0x82;
+#endif
+#ifdef TQFP_PORT_MAP  
+TIMSK=0x05;
+#endif
 
-// Universal Serial Interface initialization
+// USART initialization
 // Mode: Disabled
-// Clock source: Register & Counter=no clk.
 // USI Counter Overflow Interrupt: Off
+#ifdef ORIG_PORT_MAP  
 USICR=0x00;
+#endif
+#ifdef TQFP_PORT_MAP  
+UCSRB=0x00;
+#endif
 
 // Analog Comparator initialization
 // Analog Comparator: Off
 // Analog Comparator Input Capture by Timer/Counter 1: Off
 ACSR=0x80;
+#ifdef TQFP_PORT_MAP  
+SFIOR=0x00;
+#endif
+
+#ifdef TQFP_PORT_MAP  
+// ADC initialization
+// ADC disabled
+ADCSRA=0x00;
+
+// SPI initialization
+// SPI disabled
+SPCR=0x00;
+
+// TWI initialization
+// TWI disabled
+TWCR=0x00;
+#endif
 
 #ifdef Blinking
 DimmerCounter = 0;
