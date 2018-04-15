@@ -37,7 +37,7 @@
 //#define CorT_Static (0)
 
 // Опция входа в настройки нажатием на одну кнопку
-#define ENTER_SETTINGS_BY_ONE_KEY
+//#define ENTER_SETTINGS_BY_ONE_KEY
 
 // Опция повышения точности измерений за счет более редкого опроса датчика
 //#define PREVENT_SENSOR_SELF_HEATING
