@@ -36,6 +36,10 @@
 // Опция ненастраиваемой поправки (не забываем про формат записи значений, см. ниже), скобки не убираем
 //#define CorT_Static (0)
 
+// Опция входа в настройки нажатием на одну кнопку
+//#define ENTER_SETTINGS_BY_ONE_KEY
+
+// Опция повышения точности измерений за счет более редкого опроса датчика
 //#define PREVENT_SENSOR_SELF_HEATING
 
 #ifndef PREVENT_SENSOR_SELF_HEATING
@@ -73,6 +77,7 @@
 //разряды индикатора
 #define DISPLAY_PORT PORTD
 #define DISPLAY_PINS PIND
+#define DISPLAY_DDR  DDRD
 
 #define MINUS_PIN_MASK_BASE 0b00000001
 #define DOT_PIN_MASK_BASE 0b00000100
@@ -85,7 +90,6 @@
 
 #define OUTPIN_NO PORTB.3 // Нормально открытый выход
 //#define OUTPIN_NC PORTB.4 // Нормально закрытый выход (не используется)
-
 //таблица символов
 #define SYMBOLS_LEN 15
 #define SymbolsArray {\
@@ -120,12 +124,14 @@
 //85°C = 850
 //125°C = 1250       
 
+// Шаг изменения температуры при настройке
+#define T_STEP 1
 // Диапазоны допустимых значений настроек
-#define TLoadOn_Default 230
+#define TLoadOn_Default 280
 #define TLoadOn_Min -550
 #define TLoadOn_Max 1250
 
-#define DeltaT_Default 20
+#define DeltaT_Default 10
 #define DeltaT_Min 1
 #define DeltaT_Max 250
 
