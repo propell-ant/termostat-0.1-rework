@@ -45,6 +45,11 @@ BYTE    byIterationCounter =  40;//Счётчик до повторения
 #define KeyCode     ((PINA & 0b00000011) ^ 0b00000011)  // Макрос, который возвращает код нажатой клавиши
 #define PRESS_CNT   4   // Время, которое клавиша должна удерживаться
 #define RELEASE_CNT 4   // Время, после которого клавиша считается отжатым
+#define COUNTER_MAX 5
+#ifdef PREVENT_SENSOR_SELF_HEATING 
+#undef COUNTER_MAX
+#define COUNTER_MAX 1
+#endif
 
 /**************************************************************************\
     Инициализация модуля (переменных и железа)
@@ -255,7 +260,7 @@ void ProcessKey(void)
         break;
 	
     }
-    Counter = 5;        //и взводим счётчик ещё на 5 секунд.
+    Counter = COUNTER_MAX;        //и взводим счётчик ещё на 5 секунд.
     #ifdef Blinking                    
     GoBlinking = 0;
     #endif
