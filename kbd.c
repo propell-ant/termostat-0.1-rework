@@ -154,6 +154,12 @@ void ProcessKey(void)
                   T_LoadOn -= T_STEP;      //уменьшаем значение на 0,1°
 //                  RefreshDisplay(); //обновляем данные на экране     
                 }
+                #if T_STEP > 1
+                if (T_LoadOn < TLoadOn_Min) //если "проскочили" минимальную температуру, то 
+                {
+                  T_LoadOn = TLoadOn_Min;      //устанавливаем минимум
+                }
+                #endif
 //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
 //                Counter = 5;        //и взводим счётчик на 5 секунд.
               break;
@@ -190,6 +196,12 @@ void ProcessKey(void)
                   T_LoadOn += T_STEP;      //то увеличиваем Установленную температуру на 0,1° 
 //                  RefreshDisplay(); //обновляем данные на экране    
                 }             
+                #if T_STEP > 1
+                if (T_LoadOn > TLoadOn_Max - DeltaT) //если "проскочили" максимальную температуру, то 
+                {
+                  T_LoadOn = TLoadOn_Max - DeltaT;      //устанавливаем максимум
+                }
+                #endif
 //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
