@@ -640,7 +640,7 @@ void main(void)
 
 //выше уже проинициализировали
 //#ifdef OUTPIN_NC
-//OUTPIN_NC = 1;
+//OUTPIN_NC = 0;
 //#endif             
 //OUTPIN_NO = 0; 
 
