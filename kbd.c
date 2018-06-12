@@ -20,6 +20,7 @@ extern BYTE View;
 extern BYTE Counter;
 extern int T_LoadOn;
 extern int DeltaT; 
+extern BYTE LoadOn;
 #ifdef CorCode
 extern INT8 CorT;
 #endif
@@ -230,6 +231,7 @@ void ProcessKey(void)
         break;  
         
         case KEY_3:               // Была нажаты обе кноки вместе.
+          LoadOn = 0;
           View++;
           if (View > View_Max) 
           {

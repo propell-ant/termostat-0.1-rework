@@ -25,7 +25,7 @@
 #define ShowWelcomeScreen
 
 // Опция подавления мерцания индикатора
-#define EliminateFlicker
+//#define EliminateFlicker
 
 // Опция моргающей индикации при обнаружении ошибки
 #define Blinking

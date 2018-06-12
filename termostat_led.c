@@ -59,7 +59,7 @@ BYTE byDisplay[4]
   
 bit Updating;         //служебная переменная
 //bit Minus;            //равна "1" если температура отрицательная
-bit LoadOn;           //равна "1" если включена нагрузка
+BYTE LoadOn;           //равна "1" если включена нагрузка
 bit Initializing;        //равна "1" до получения первого значения температуры с датчика
 
 #ifdef ShowDataErrors
@@ -323,14 +323,14 @@ void ShowDisplayData11Times(void)
 //     PORTB = PINB | 0b00000001;
 //   }                           
   #ifdef heat
-  if (LoadOn)
+  if (LoadOn==1)
   {
     DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
   }
   #endif
  
   #ifdef cold
-  if (!LoadOn)
+  if (LoadOn==0)
   {
     DISPLAY_PORT = DISPLAY_PINS | DOT_PIN_MASK;
   }
@@ -381,14 +381,14 @@ void ShowDisplayData11Times(void)
 //     PORTB = PINB & 0b11111110;
 //   }                           
   #ifdef heat
-  if (LoadOn)
+  if (LoadOn==1)
   {
     DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
   }           
   #endif
   
   #ifdef cold
-  if (!LoadOn)
+  if (LoadOn==0)
   {
     DISPLAY_PORT = DISPLAY_PINS & DOT_PIN_MASK;
   }           
@@ -556,27 +556,37 @@ if (ErrorCounter == 0)
   #endif
   OUTPIN_NO = 0;
   NeedResetLoad = 1;
-  LoadOn = ShowDotWhenError;              
+  LoadOn = 2;              
 }
 else
 #endif 
 if (!Initializing)
 {
-Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
+if (LoadOn == 2) //Если включен сигнал, значит его пора выключить
+{                              
+  OUTPIN_NO = 0;              
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 0;
+  #endif
+  LoadOn = 3; //посигналили, надо прекратить сигналить
+  NeedResetLoad = 0;              
+}             
 
-if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
+Temp = T_LoadOn;// + DeltaT;      //Temp - временная переменная.
+
+if (Tnew >= Temp) if (LoadOn < 2) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 {                              //то выключаем нагрузку
   OUTPIN_NO = 0;              
   #ifdef OUTPIN_NC
   OUTPIN_NC = 1;
   #endif
-  LoadOn = 0;
+  LoadOn = 2; //подогрели, надо дать сигнал
   NeedResetLoad = 0;              
 }             
 
 Temp = T_LoadOn;                //Temp - временная переменная.
 
-if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
+if (Tnew <= Temp) if (LoadOn == 0) //Если температура ниже (установленной) и нагрузка выключена,
 {                               //то включаем нагрузку
   #ifdef OUTPIN_NC
   OUTPIN_NC = 0;
@@ -736,7 +746,7 @@ ErrorCounter = 1;       //При включении обязательно показываем даже первую ошибк
 GoBlinking = 0;
 #endif
 Initializing = 1;
-LoadOn = ShowDotAtStartup;//Точка включения нагрузки не должна гореть при старте, но для cold и heat это разные значения 
+LoadOn = 3; //это значит уже и подогрели и дали сигнал
 RefreshDisplay();       //Обновление данных на индикаторе.
 
 Updating = 1; // Теперь первое обращение к датчику будет ConvertT
