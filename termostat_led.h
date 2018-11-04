@@ -51,28 +51,24 @@
 #define T1_OFFSET_LONG 0xE17B
 #endif
                  
-#define View_Max 2
-#define SHOW_Normal 0
-#define SHOW_TLoadOn 1
-#define SHOW_DeltaT 2
-
-
+enum{ //здесь хитрый способ расставить идентификаторы режимов отображения по порядку, не указывая явно номера
+ SHOW_Normal  = 0
+,SHOW_TLoadOn = 1
+,SHOW_DeltaT  = 2
 #ifdef CorCode
-#define SHOW_CorT 3   
-#undef View_Max
-#define View_Max 3
+,SHOW_CorT
 #endif
+#ifdef Clock
+,SHOW_Time
+#endif
+
+//это должно оставаться последними строчками
 #ifdef ShowDataErrors
-#ifdef CorCode
-#define SHOW_Error 4
-#undef View_Max
-#define View_Max 4
-#else
-#define SHOW_Error 3
-#undef View_Max
-#define View_Max 3
+,SHOW_Error
 #endif
-#endif
+,View_Top
+};
+#define View_Max (View_Top-1)
 
 //разряды индикатора
 #define DISPLAY_PORT PORTD

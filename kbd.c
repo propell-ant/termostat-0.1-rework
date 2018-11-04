@@ -152,7 +152,7 @@ void ProcessKey(void)
             switch (View)
             {
               #ifdef ENTER_SETTINGS_BY_ONE_KEY
-              case 0:               //если был режим "Текущая температура", то
+              case SHOW_Normal:               //если был режим "Текущая температура", то
                  View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
               break;
               #endif
@@ -171,7 +171,7 @@ void ProcessKey(void)
 //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
 //                Counter = 5;        //и взводим счётчик на 5 секунд.
               break;
-              case 2:               //если мы в режиме "Дэльта", то 
+              case SHOW_DeltaT:               //если мы в режиме "Дэльта", то 
                 if (DeltaT > DeltaT_Min)     //если "Дэльта" больше Min, то 
                 {
                   DeltaT --;        //уменьшаем Дэльту на 0,1°
@@ -180,7 +180,7 @@ void ProcessKey(void)
 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
               #ifdef CorCode
-              case 3:                   //если мы в режиме "Коррекции", то
+              case SHOW_CorT:                   //если мы в режиме "Коррекции", то
                 if (CorT > CorT_Min)
                 {
                     CorT--;         //уменьшаем значение на 0,1°
@@ -194,7 +194,7 @@ void ProcessKey(void)
             switch (View)
             {
               #ifdef ENTER_SETTINGS_BY_ONE_KEY
-              case 0:               //если был режим "Текущая температура", то
+              case SHOW_Normal:               //если был режим "Текущая температура", то
                  View = SHOW_TLoadOn;           //переходим в режим "Установленная температура"
               break;
               #endif
@@ -213,7 +213,7 @@ void ProcessKey(void)
 //                View = SHOW_TLoadOn;           //удерживаем в режиме "Установленная температура"
 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
-              case 2:
+              case SHOW_DeltaT:
                 if (DeltaT < DeltaT_Max)   //если Дельта меньше Max, то
                 {
                   DeltaT ++;        //то увеличиваем Дэльту на 0,1°
@@ -222,7 +222,7 @@ void ProcessKey(void)
 //                Counter = 5;        //и взводим счётчик ещё на 5 секунд.
               break;
               #ifdef CorCode
-              case 3:                   //если мы в режиме "Коррекции", то
+              case SHOW_CorT:                   //если мы в режиме "Коррекции", то
                 if (CorT < CorT_Max)
                 {
                     CorT++;
