@@ -79,6 +79,15 @@ BYTE View = SHOW_Normal;  //определяет в каком режиме отображения находится устр
                           //SHOW_CorT    - Поправка к показаниям датчика (если включена опция CorCode)
                           //SHOW_Error   - Код ошибки при наличии ошибки (если включена опция ShowDataErrors)
 
+#define SwitchDelay 3
+BYTE LastSwitch;  
+BYTE SwitchCommand;
+#define COMMAND_EMPTY 0
+#define COMMAND_ON 1
+#define COMMAND_HOLD_ON 3
+#define COMMAND_OFF 2
+#define COMMAND_HOLD_OFF 4        
+
 int Tnew;                //для хранения нового значения измеренной температуры
 int T_LoadOn;            //для хранения значения Установленной температуры
 int DeltaT;              //для хранения значения Дэльты
@@ -556,8 +565,10 @@ else
 if (ErrorCounter == 0)
 {
   #ifdef OUTPIN_NC
-  OUTPIN_NC = 0;
+  //OUTPIN_NC = 0;
   #endif
+  SwitchCommand = COMMAND_OFF; //запоминаем получение команды на выключение вентилятора, 
+  LastSwitch = SwitchDelay;    //перезапускаем отсчет задержки
   OUTPIN_NO = 0;
   NeedResetLoad = 1;
   LoadOn = ShowDotWhenError;              
@@ -571,23 +582,42 @@ Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
 if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установленной + Дэльта) и нагрузка включена,
 {                              //то выключаем нагрузку
   OUTPIN_NO = 0;              
-  #ifdef OUTPIN_NC
-  OUTPIN_NC = 1;
-  #endif
   LoadOn = 0;
+  SwitchCommand = COMMAND_OFF; //запоминаем получение команды на выключение вентилятора, 
+//   if (NeedResetLoad)
+//   {
+//     LastSwitch = 0;    //после первого измерения выключаем вентилятор без задержки
+//   }
+//   else
+//   {
+    LastSwitch = SwitchDelay;    //перезапускаем отсчет задержки, при старте задержка будет отсчитываться при выключенном вентиляторе
+//   }
   NeedResetLoad = 0;              
+}             
+if (SwitchCommand == COMMAND_OFF) if (LastSwitch == 0) //прошла команда на выключение вентилятора и отсчет задержки окончен
+{                              //то выключаем вентилятор
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 0;
+  #endif
+  SwitchCommand = COMMAND_EMPTY;
 }             
 
 Temp = T_LoadOn;                //Temp - временная переменная.
 
 if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
 {                               //то включаем нагрузку
-  #ifdef OUTPIN_NC
-  OUTPIN_NC = 0;
-  #endif
   OUTPIN_NO = 1;
   LoadOn = 1;  
   NeedResetLoad = 0;              
+  SwitchCommand = COMMAND_ON; //запоминаем получение команды на включение вентилятора, 
+  LastSwitch = 0; // выполняем немедленно
+} 
+if (SwitchCommand == COMMAND_ON) //Если получена команда на включение вентилятора,
+{                               //то включаем вентилятор
+  #ifdef OUTPIN_NC
+  OUTPIN_NC = 1;
+  #endif
+  SwitchCommand = COMMAND_EMPTY;            
 } 
 }//if errorCounter
 
@@ -599,6 +629,11 @@ else                            //пока не станет равной "0".
 {
   View = SHOW_Normal;                     //если она =0, то сбрасываем текущий режим на "0"
 }                                                           
+// обратный отсчет задержки                                                           
+if (LastSwitch>0)
+{
+  LastSwitch--;
+}                          
 RefreshDisplay();               //Обновление данных на индикаторе.
 #ifdef EliminateFlicker
 skipDelay = 0;
@@ -643,6 +678,9 @@ void main(void)
 //OUTPIN_NC = 0;
 //#endif             
 //OUTPIN_NO = 0; 
+
+SwitchCommand = COMMAND_EMPTY;
+LastSwitch = 0;
 
 // Timer/Counter 0 initialization
 // Clock source: System Clock
