@@ -33,11 +33,14 @@
 // Опция настройки поправки к показаниям датчика
 //#define CorCode
 
+// Опция управления вентилятором отопительного котла
+#define Vent
+
 // Опция ненастраиваемой поправки (не забываем про формат записи значений, см. ниже), скобки не убираем
 //#define CorT_Static (0)
 
 // Опция входа в настройки нажатием на одну кнопку
-//#define ENTER_SETTINGS_BY_ONE_KEY
+#define ENTER_SETTINGS_BY_ONE_KEY
 
 // Опция повышения точности измерений за счет более редкого опроса датчика
 //#define PREVENT_SENSOR_SELF_HEATING
@@ -60,6 +63,9 @@ enum{ //здесь хитрый способ расставить идентификаторы режимов отображения по пор
 #endif
 #ifdef Clock
 ,SHOW_Time
+#endif
+#ifdef Vent
+,SHOW_DelayVent
 #endif
 
 //это должно оставаться последними строчками
@@ -85,9 +91,9 @@ enum{ //здесь хитрый способ расставить идентификаторы режимов отображения по пор
 #define DIGIT4 PORTC.3
 
 #define OUTPIN_NO PORTB.3 // Нормально открытый выход
-#define OUTPIN_NC PORTB.4 // Нормально закрытый выход (не используется)
+#define OUTPIN_NC PORTB.2 // Нормально закрытый выход
 //таблица символов
-#define SYMBOLS_LEN 15
+#define SYMBOLS_LEN 16
 #define SymbolsArray {\
 0xFA,/*0*/\
 0x82,/*1*/\
@@ -101,11 +107,11 @@ enum{ //здесь хитрый способ расставить идентификаторы режимов отображения по пор
 0xEB,/*9*/\
 0x00,/*blank*/\
 0x01,/*-*/\
-/*0x39,//t*/\
 0x9B,/*d*/\
 /*0x79,//L*/\
 0x78,/*C*/\
-0x79/*E*/\
+0x79,/*E*/\
+0x39/*t*/\
 /*0xB3,//H*/\
 /*0x30,//I*/\
 }; 
@@ -134,5 +140,9 @@ enum{ //здесь хитрый способ расставить идентификаторы режимов отображения по пор
 #define CorT_Default 0
 #define CorT_Min -99
 #define CorT_Max 99      
+
+#define DelayVent_Default 60
+#define DelayVent_Min 0
+#define DelayVent_Max 250      
 
 #endif

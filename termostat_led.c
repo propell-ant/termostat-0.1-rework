@@ -79,7 +79,7 @@ BYTE View = SHOW_Normal;  //определяет в каком режиме отображения находится устр
                           //SHOW_CorT    - Поправка к показаниям датчика (если включена опция CorCode)
                           //SHOW_Error   - Код ошибки при наличии ошибки (если включена опция ShowDataErrors)
 
-#define SwitchDelay 3
+#define SwitchDelay DelayVent
 BYTE LastSwitch;  
 BYTE SwitchCommand;
 #define COMMAND_EMPTY 0
@@ -93,6 +93,9 @@ int T_LoadOn;            //для хранения значения Установленной температуры
 int DeltaT;              //для хранения значения Дэльты
 #ifdef CorCode
 INT8 CorT;
+#endif
+#ifdef Vent
+unsigned INT8 DelayVent;
 #endif
 
 #ifdef ShowDataErrors
@@ -159,6 +162,9 @@ eeprom int eeDeltaT = DeltaT_Default;
 #ifdef CorCode
 eeprom INT8 eeCorT = CorT_Default;
 #endif
+#ifdef Vent
+eeprom unsigned INT8 eeDelayVent = DelayVent_Default;
+#endif
 BYTE byCharacter[SYMBOLS_LEN] = SymbolsArray;
 
 /************************************************************************\
@@ -213,6 +219,11 @@ void PrepareData(int Data)
           }
           break;
         #endif
+        #ifdef Vent          
+        case SHOW_DelayVent:
+          byDisplay[0] = 15;//t     
+          break;
+        #endif
         #ifdef ShowDataErrors
         case SHOW_Error:
           byDisplay[0] = 14;     
@@ -257,6 +268,10 @@ void RefreshDisplay(void)
       if (CorT != eeCorT)
         eeCorT = CorT;
       #endif
+      #ifdef Vent
+      if (DelayVent != eeDelayVent)
+        eeDelayVent = DelayVent;
+      #endif
     break;
     case SHOW_TLoadOn:
       Data = T_LoadOn;
@@ -268,6 +283,11 @@ void RefreshDisplay(void)
 #ifdef CorCode
     case SHOW_CorT:
         Data = CorT;
+    break;
+#endif
+#ifdef Vent
+    case SHOW_DelayVent:
+        Data = DelayVent;
     break;
 #endif
 #ifdef ShowDataErrors
@@ -361,7 +381,11 @@ void ShowDisplayData11Times(void)
   delay_us(LED_delay);
   DIGIT2 = 1;
       
-  DISPLAY_PORT = byCharacter[byDisplay[2]] | DOT_PIN_MASK;
+  DISPLAY_PORT = byCharacter[byDisplay[2]];
+  if (View != SHOW_DelayVent)
+  {
+    DISPLAY_PORT |= DOT_PIN_MASK;
+  }
   DIGIT3 = DigitsActive;
   delay_us(LED_delay);
   DIGIT3 = 1;
@@ -419,7 +443,11 @@ void ShowDisplayData11Times(void)
   delay_us(LED_delay);
   DIGIT2 = 0;
       
-  DISPLAY_PORT = ~byCharacter[byDisplay[2]] & DOT_PIN_MASK;
+  DISPLAY_PORT = ~byCharacter[byDisplay[2]];
+  if (View != SHOW_DelayVent)
+  {
+    DISPLAY_PORT &= DOT_PIN_MASK;
+  }
   DIGIT3 = DigitsActive;
   delay_us(LED_delay);
   DIGIT3 = 0;
@@ -533,6 +561,7 @@ if (Updating)           //если в этот раз читаем температуру, то
         #ifdef Blinking                    
         GoBlinking = 1;
         #endif
+//        Updating = 1;//на следующем шаге нужно послать команду ReadT
       }
   }
   else
@@ -566,15 +595,19 @@ if (ErrorCounter == 0)
 {
   #ifdef OUTPIN_NC
   //OUTPIN_NC = 0;
+  if (OUTPIN_NC == 1 && SwitchCommand != COMMAND_OFF)
+  {
+    SwitchCommand = COMMAND_OFF; //запоминаем получение команды на выключение вентилятора, 
+    LastSwitch = SwitchDelay;    //перезапускаем отсчет задержки
+  }
   #endif
-  SwitchCommand = COMMAND_OFF; //запоминаем получение команды на выключение вентилятора, 
-  LastSwitch = SwitchDelay;    //перезапускаем отсчет задержки
   OUTPIN_NO = 0;
   NeedResetLoad = 1;
   LoadOn = ShowDotWhenError;              
 }
 else
 #endif 
+//if (Updating)           //если в этот раз читаем температуру, то 
 if (!Initializing)
 {
 Temp = T_LoadOn + DeltaT;      //Temp - временная переменная.
@@ -594,14 +627,6 @@ if (Tnew >= Temp) if (LoadOn || NeedResetLoad) //Если температура выше (установл
 //   }
   NeedResetLoad = 0;              
 }             
-if (SwitchCommand == COMMAND_OFF) if (LastSwitch == 0) //прошла команда на выключение вентилятора и отсчет задержки окончен
-{                              //то выключаем вентилятор
-  #ifdef OUTPIN_NC
-  OUTPIN_NC = 0;
-  #endif
-  SwitchCommand = COMMAND_EMPTY;
-}             
-
 Temp = T_LoadOn;                //Temp - временная переменная.
 
 if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (установленной) и нагрузка выключена,
@@ -612,14 +637,25 @@ if (Tnew <= Temp) if (!LoadOn  || NeedResetLoad) //Если температура ниже (устано
   SwitchCommand = COMMAND_ON; //запоминаем получение команды на включение вентилятора, 
   LastSwitch = 0; // выполняем немедленно
 } 
-if (SwitchCommand == COMMAND_ON) //Если получена команда на включение вентилятора,
-{                               //то включаем вентилятор
-  #ifdef OUTPIN_NC
+}//if errorCounter
+switch (SwitchCommand ) 
+{                              
+  case COMMAND_OFF:    //Если прошла команда на выключение вентилятора
+  if (LastSwitch == 0) //и отсчет задержки окончен,
+  {                    //то выключаем вентилятор
+    #ifdef OUTPIN_NC
+    OUTPIN_NC = 0;
+    #endif
+    SwitchCommand = COMMAND_EMPTY;
+  }
+  break;
+  case COMMAND_ON: //Если получена команда на включение вентилятора,                             
+  #ifdef OUTPIN_NC //то включаем вентилятор
   OUTPIN_NC = 1;
   #endif
   SwitchCommand = COMMAND_EMPTY;            
-} 
-}//if errorCounter
+  break;
+}
 
 if (Counter > 0)                //Counter - переменная для подсчёта времени отображения различных режимов
 {                               
@@ -655,7 +691,7 @@ void main(void)
         //Разряд PINx - доступен только для чтения и содержит физическое значение вывода порта
         
         PORTB=0b00110000; // нагрузку-выключить
-        DDRB= 0b00111000; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
+        DDRB= 0b00111100; // весь порт кроме PORTC.1 (нагрузка) работает на вход (клавиши управления)
         
         DISPLAY_PORT=0b00000000;
         DISPLAY_DDR =0b11111111;
@@ -779,6 +815,11 @@ if (eeDeltaT > DeltaT_Max || eeDeltaT < DeltaT_Min)
 if ((eeCorT > CorT_Max) || (eeCorT < CorT_Min))    // если в EEPROM значение > MaxCorT°C или < MinCorT°C значит он не прошился, // mod by Grey4ip
   eeCorT = CorT_Default;                        // или чё-то глюкануло, поэтому запишем туда начальные значения. // mod by Grey4ip
 CorT = eeCorT;
+#endif
+#ifdef Vent
+if ((eeDelayVent > DelayVent_Max) /*|| (eeDelayVent < DelayVent_Min)*/)    // если в EEPROM значение > MaxDelayVent или < MinDelayVent значит он не прошился, 
+  eeDelayVent = DelayVent_Default;                        // или чё-то глюкануло, поэтому запишем туда начальные значения.
+DelayVent = eeDelayVent;
 #endif
   
 T_LoadOn = eeT_LoadOn;  //читаем значение Установленной температуры из EEPROM в RAM

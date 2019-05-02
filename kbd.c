@@ -23,6 +23,9 @@ extern int DeltaT;
 #ifdef CorCode
 extern INT8 CorT;
 #endif
+#ifdef Vent
+extern unsigned INT8 DelayVent;
+#endif
 extern void RefreshDisplay(void);
 #endif
 #ifdef Blinking                    
@@ -187,6 +190,14 @@ void ProcessKey(void)
                 }
                 break;
               #endif
+              #ifdef Vent
+              case SHOW_DelayVent:                   //если мы в режиме изменения задержки, то
+                if (DelayVent > DelayVent_Min)
+                {
+                    DelayVent--;         //уменьшаем значение на 1 сек
+                }
+                break;
+              #endif
             }
         break;
             
@@ -226,6 +237,14 @@ void ProcessKey(void)
                 if (CorT < CorT_Max)
                 {
                     CorT++;
+                }
+              break;
+              #endif
+              #ifdef Vent
+              case SHOW_DelayVent:                   //если мы в режиме "Коррекции", то
+                if (DelayVent < DelayVent_Max)
+                {
+                    DelayVent++;
                 }
               break;
               #endif
