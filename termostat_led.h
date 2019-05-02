@@ -141,7 +141,7 @@ enum{ //здесь хитрый способ расставить идентификаторы режимов отображения по пор
 #define CorT_Min -99
 #define CorT_Max 99      
 
-#define DelayVent_Default 60
+#define DelayVent_Default 0
 #define DelayVent_Min 0
 #define DelayVent_Max 250      
 
