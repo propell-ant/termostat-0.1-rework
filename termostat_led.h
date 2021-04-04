@@ -28,7 +28,7 @@
 #define EliminateFlicker
 
 // Опция моргающей индикации при обнаружении ошибки
-#define Blinking
+//#define Blinking
 
 // Опция настройки поправки к показаниям датчика
 //#define CorCode
